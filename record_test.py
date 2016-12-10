@@ -1,27 +1,51 @@
 from sys import byteorder
 from array import array
 from struct import pack
+from scipy.io import wavfile
 import time
-
+import math
+import numpy
 import pyaudio
 import wave
 
 THRESHOLD = 500
 CHUNK_SIZE = 1024
-RECORD_SECONDS = 5
+RECORD_SECONDS = 30
 FORMAT = pyaudio.paInt16
 RATE = 44100
 
-def record():
-    """
-    Record a word or words from the microphone and 
-    return the data as an array of signed shorts.
+def get_amplitude_at_frequency(freq, aud_data, samp_freq):
+    #samp_freq, snd = wavfile.read('440_sine.wav')
+    #s1 = snd[:,0]
+    #s2 = snd[:,1]
+    s1 = numpy.array(aud_data)
+    n = len(s1) 
+    p = numpy.fft.fft(s1) / float(n) # take the fourier transform 
 
-    Normalizes the audio, trims silence from the 
-    start and end, and pads with 0.5 seconds of 
-    blank sound to make sure VLC et al can play 
-    it without getting chopped off.
-    """
+    magnitude = [math.sqrt(x.real**2 + x.imag**2) for x in p]
+    index = int(int(freq) * n / int(samp_freq))
+
+    return magnitude[index]
+
+def get_dominant_frequency(samp_freq, aud_data):
+    #samp_freq, snd = wavfile.read('440_sine.wav')
+    #s1 = snd[:,0]
+    #s2 = snd[:,1]
+    s1 = numpy.array(aud_data)
+    n = len(s1) 
+    p = numpy.fft.fft(s1) / float(n) # take the fourier transform 
+
+    magnitude = [math.sqrt(x.real**2 + x.imag**2) for x in p]
+    max_mag = -float('inf')
+    max_index = -1
+    for i, x in enumerate(magnitude):
+        if x > max_mag:
+            max_mag= x
+            max_index = i
+
+    return max_index * samp_freq / n
+
+def record():
     p = pyaudio.PyAudio()
     stream = p.open(format=FORMAT, channels=1, rate=RATE,
         input=True, output=True,
@@ -30,15 +54,24 @@ def record():
     r = array('h')
     start = time.time()
     print("Start recording...")
-    count = 0
+
     for i in range(0, int(RATE / CHUNK_SIZE * RECORD_SECONDS)):
-        count = i
         # little endian, signed short
         snd_data = array('h', stream.read(CHUNK_SIZE))
         if byteorder == 'big':
             snd_data.byteswap()
         r.extend(snd_data)
-    print(time.time() - start, count)
+
+        #if len(samp) > sample_count * len(snd_data):
+
+        freq = get_dominant_frequency(RATE, snd_data)
+        #print(snd_data[:50])
+        print(freq)
+        print(("440 mag", get_amplitude_at_frequency(440, snd_data, RATE)))
+            #samp = array('h')
+        #samp.extend(snd_data)
+
+    print(time.time() - start)
 
     stream.stop_stream()
     stream.close()
