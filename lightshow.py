@@ -78,7 +78,7 @@ def get_dominant_frequency(samp_freq, aud_data):
 
 def visualize(screen, file_name=None):
     # Start out white
-    light_color = ColorVisualizer(255, 255, 255)
+    light_color = ColorVisualizer(255, 255, 255, RATE/CHUNK_SIZE)
     music = Recording(file_name=file_name, playback=True if file_name else False)
     while music.still_playing(): 
         sound_data = music.get_chunk()

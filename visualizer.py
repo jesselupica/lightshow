@@ -1,5 +1,6 @@
 from collections import deque
 import time
+import random
 
 class ColorVisualizer: 
     # acc 10 gravity -4 works well
@@ -24,15 +25,13 @@ class ColorVisualizer:
     SIGNAL_INTENSITY_DRAG = 5
     SIGNAL_INTENSITY_GAIN = 30
 
-    def __init__(self, r, g, b):
+    def __init__(self, r, g, b, update_freq):
         r, g, b = self._bounds_check(r, g, b)
         self.red    = r if r > 1 else r * ColorVisualizer.RGB_INTENSITY_MAX
         self.green  = g if g > 1 else g * ColorVisualizer.RGB_INTENSITY_MAX
         self.blue   = b if b > 1 else b * ColorVisualizer.RGB_INTENSITY_MAX
-
-        self.rv = 0
-        self.bv = 0
-        self.gv = 0     
+        
+        self.update_freq = update_freq
         # 5 is a magic number. I know. Get over it.
         self.signal_history = deque(maxlen=5)   
         self.sig_time_history = deque([time.time()], maxlen=5)
@@ -41,8 +40,9 @@ class ColorVisualizer:
         self.signal_intensity_maxes = [ColorVisualizer.SIGNAL_INTENSITY_MAX_START] * 3
 
         self.rgb_history = [deque([0], maxlen=50)] * 3
-        self.rgb_max_mults = [1] * 3
-    
+        self.rgb_max_mults = [1] * 3    
+
+        self.rgb_raw_signal_history = [deque([0], maxlen=5)] * 3
 
     def tuple(self):
         #print(str(self.red) + ', ' + str(self.green) + ', ' + str(self.blue))
@@ -79,7 +79,7 @@ class ColorVisualizer:
         sorted_fa_pairs = sorted(freq_amp_pairs, key=lambda x: x[1])
         rgb = sorted(sorted_fa_pairs[-3:], key=lambda x: x[0])
         #print([ int(2**((i-49)/12) * 440) for i, a in rgb])
-        return [x[1] for x in rgb]
+        return [x[1] for x in rgb], [x[0] for x in rgb]
 
     def _update_signal_intensity_multipliers(self):
         avg_rgb = [sum(d)/len(d) for d in self.rgb_history]
@@ -90,23 +90,33 @@ class ColorVisualizer:
             elif self.rgb_max_mults[i] > 1:
                 self.rgb_max_mults[i] /= ColorVisualizer.RGB_COEFF_INCR 
 
+    def _is_hit(self, rgb_raw):
+        hit_cooef = 3
+        avg_signal_amp = [sum(d)/len(d) for d in self.rgb_raw_signal_history]
+        for sig, deq in zip(rgb_raw, self.rgb_raw_signal_history):
+            deq.append(sig) 
+        return tuple([sig > hit_cooef * avg for sig, avg in zip(rgb_raw, avg_signal_amp)])
+
     def update_colors(self, freq_amps):
 
         dt = time.time() - self.sig_time_history[-1]
         self.sig_time_history.append(time.time())
 
-        rgb_raw = self._choose_rgb_signals(freq_amps)
+        rgb_raw, rgb_ints = self._choose_rgb_signals(freq_amps)
+        is_hit = self._is_hit(rgb_raw)
+        hit_const = [80 if h else 0 for h in is_hit]
+
         self._update_signal_intensity_multipliers()
 
         self.signal_intensity_maxes = [max(c,m) for c, m in zip(rgb_raw, self.signal_intensity_maxes)]
         r, g, b = [x/(m*mult) for x, m, mult in zip(rgb_raw, self.signal_intensity_maxes, self.rgb_max_mults)]
-        print( str(round(r, 5)) + '   \t' + str(round(g, 5)) + '   \t' + str(round(b, 5)))
+        #print( str(round(r, 5)) + '   \t' + str(round(g, 5)) + '   \t' + str(round(b, 5)))
         smooth_r, smooth_g, smooth_b = self._smooth(r, g, b)
 
         excited_r = max(smooth_r, r)
-        self.rv = ColorVisualizer.GRAVITY + ColorVisualizer.ACCELERATION * excited_r 
-        self.gv = ColorVisualizer.GRAVITY + ColorVisualizer.ACCELERATION * smooth_g 
-        self.bv = ColorVisualizer.GRAVITY + ColorVisualizer.ACCELERATION * smooth_b 
+        rv = ColorVisualizer.GRAVITY + ColorVisualizer.ACCELERATION * excited_r + hit_const[0]
+        gv = ColorVisualizer.GRAVITY + ColorVisualizer.ACCELERATION * smooth_g  + hit_const[1]
+        bv = ColorVisualizer.GRAVITY + ColorVisualizer.ACCELERATION * smooth_b  + hit_const[2]
 
         for i, m_i in enumerate(self.signal_intensity_maxes):
             if m_i > ColorVisualizer.SIGNAL_INTENSITY_DRAG:
@@ -115,9 +125,9 @@ class ColorVisualizer:
                     drag *= ColorVisualizer.INIT_RGB_COEFF[i]
                 self.signal_intensity_maxes[i] = max(ColorVisualizer.SIGNAL_INTENSITY_MAX_START, m_i - drag)
 
-        self.red += self.rv 
-        self.green += self.gv
-        self.blue += self.bv
+        self.red += rv 
+        self.green += gv
+        self.blue += bv
 
         self.red, self.green, self.blue = self._bounds_check(self.red, self.green, self.blue)
         rgb = [self.red, self.green, self.blue]
