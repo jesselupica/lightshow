@@ -1,0 +1,4 @@
+numpy==1.11.0
+PyAudio==0.2.9
+pygame==1.9.2rc1
+scipy==0.18.1
