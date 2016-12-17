@@ -100,15 +100,13 @@ class ColorVisualizer:
 
         self.signal_intensity_maxes = [max(c,m) for c, m in zip(rgb_raw, self.signal_intensity_maxes)]
         r, g, b = [x/(m*mult) for x, m, mult in zip(rgb_raw, self.signal_intensity_maxes, self.rgb_max_mults)]
+        print( str(round(r, 5)) + '   \t' + str(round(g, 5)) + '   \t' + str(round(b, 5)))
         smooth_r, smooth_g, smooth_b = self._smooth(r, g, b)
-        #print(smooth_r, smooth_g, smooth_b)
 
         excited_r = max(smooth_r, r)
         self.rv = ColorVisualizer.GRAVITY + ColorVisualizer.ACCELERATION * excited_r 
         self.gv = ColorVisualizer.GRAVITY + ColorVisualizer.ACCELERATION * smooth_g 
         self.bv = ColorVisualizer.GRAVITY + ColorVisualizer.ACCELERATION * smooth_b 
-
-       # print(self.rgb_coeff)
 
         for i, m_i in enumerate(self.signal_intensity_maxes):
             if m_i > ColorVisualizer.SIGNAL_INTENSITY_DRAG:
