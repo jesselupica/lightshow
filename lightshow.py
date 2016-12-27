@@ -3,13 +3,11 @@ import sys
 from array import array
 from struct import pack
 from scipy.io import wavfile
-import time
 import math
 import numpy
 import pyaudio
 import wave
 import pygame
-import random
 from visualizer import ColorVisualizer
 
 THRESHOLD = 500
@@ -29,10 +27,7 @@ class Recording:
                                 input=True, output=True,
                                 frames_per_buffer=CHUNK_SIZE)
         if playback:
-            self.r_stream = p.open(format=p.get_format_from_width(self.stream.getsampwidth()),
-                channels=self.stream.getnchannels(),
-                rate=self.stream.getframerate(),
-                output=True)
+            self.r_stream = self.stream 
         self.is_over = False
 
     def get_chunk(self):
@@ -79,7 +74,7 @@ def get_dominant_frequency(samp_freq, aud_data):
 def visualize(screen, file_name=None):
     # Start out white
     light_color = ColorVisualizer(255, 255, 255, RATE/CHUNK_SIZE)
-    music = Recording(file_name=file_name, playback=True if file_name else False)
+    music = Recording(file_name=file_name, playback=True) #if file_name else False)
     while music.still_playing(): 
         sound_data = music.get_chunk()
         if not sound_data:
@@ -89,11 +84,8 @@ def visualize(screen, file_name=None):
         for i in range(1, 88):
             # Taken from wikipedia for calculating frequency of each note on 88 key piano
             freqs.append(2**((i-49)/12) * 440)
-        #print(freqs)
 
         amps = get_amplitude_at_frequency(freqs, sound_data, RATE)
-        #print(amps)
-        #print([int(m) for m in max_intensities])
         light_color.update_colors(amps)
         screen.fill(light_color.tuple())
         pygame.display.flip()    

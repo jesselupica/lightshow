@@ -1,5 +1,6 @@
 from collections import deque
 import time
+import random
 
 class ColorVisualizer: 
     ACCELERATION = 12.5
@@ -16,7 +17,7 @@ class ColorVisualizer:
     SIGNAL_INTENSITY_GAIN = 30
 
     HIT_CONST = 60
-    HIT_COEFF = 3
+    HIT_COEFF = 3.5 #3
 
     def __init__(self, r, g, b, update_freq):
         r, g, b = self._bounds_check(r, g, b)
@@ -81,15 +82,26 @@ class ColorVisualizer:
         avg_signal_amp = [sum(d)/len(d) for d in self.rgb_raw_signal_history]
         for sig, deq in zip(rgb_raw, self.rgb_raw_signal_history):
             deq.append(sig) 
-        return tuple([sig > ColorVisualizer.HIT_COEFF * avg for sig, avg in zip(rgb_raw, avg_signal_amp)])
+        return [sig > ColorVisualizer.HIT_COEFF * avg for sig, avg in zip(rgb_raw, avg_signal_amp)]
 
     def update_colors(self, freq_amps):
-
-        dt = time.time() - self.sig_time_history[-1]
         self.sig_time_history.append(time.time())
 
-        rgb_raw, rgb_ints = self._choose_rgb_signals(freq_amps)
+        rgb_raw, _ = self._choose_rgb_signals(freq_amps)
         is_hit = self._is_hit(rgb_raw)
+        if all(is_hit):
+            # 7 in binary is 111, so I'm using this to determine boolean values for 3 ints
+            bitwise_on = random.randint(1, 7)
+            print(bitwise_on)
+            temp = [False] * 3
+            if bitwise_on & 1 == 1:
+                temp[0] = True
+            if bitwise_on & 2 == 2:
+                temp[1] = True 
+            if bitwise_on & 4 == 4:
+                temp[2] = True 
+            is_hit = temp
+
         hit_const = [ColorVisualizer.HIT_CONST if h else 0 for h in is_hit]
 
         self._update_signal_intensity_multipliers()
