@@ -73,21 +73,15 @@ def get_dominant_frequency(samp_freq, aud_data):
 
 def visualize(screen, file_name=None):
     # Start out white
-    light_color = ColorVisualizer(255, 255, 255, RATE/CHUNK_SIZE)
-    music = Recording(file_name=file_name, playback=True) #if file_name else False)
+    light_visualizer = ColorVisualizer(255, 255, 255, RATE/CHUNK_SIZE)
+    music = Recording(file_name=file_name, playback=True if file_name else False)
     while music.still_playing(): 
         sound_data = music.get_chunk()
         if not sound_data:
             break
 
-        freqs = []
-        for i in range(1, 88):
-            # Taken from wikipedia for calculating frequency of each note on 88 key piano
-            freqs.append(2**((i-49)/12) * 440)
-
-        amps = get_amplitude_at_frequency(freqs, sound_data, RATE)
-        light_color.update_colors(amps)
-        screen.fill(light_color.tuple())
+        light_visualizer.visualize(sound_data, RATE)
+        screen.fill(light_visualizer.tuple())
         pygame.display.flip()    
 
 if __name__ == '__main__':

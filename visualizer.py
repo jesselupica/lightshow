@@ -1,6 +1,8 @@
 from collections import deque
 import time
 import random
+import numpy
+import math
 
 class ColorVisualizer: 
     ACCELERATION = 12.5
@@ -84,15 +86,33 @@ class ColorVisualizer:
             deq.append(sig) 
         return [sig > ColorVisualizer.HIT_COEFF * avg for sig, avg in zip(rgb_raw, avg_signal_amp)]
 
-    def update_colors(self, freq_amps):
+    def _get_amplitude_at_frequency(self, freqs, aud_data, samp_freq):
+        s1 = numpy.array(aud_data)
+        n = len(s1) 
+        p = numpy.fft.fft(s1) / float(n) # take the fourier transform 
+
+        magnitude = [math.sqrt(x.real**2 + x.imag**2) for x in p]
+        return [ magnitude[int(freq * n / samp_freq)] for freq in freqs ]
+
+    def visualize(self, raw_data, rate):
+        freqs = []
+        for i in range(1, 88):
+            # Taken from wikipedia for calculating frequency of each note on 88 key piano
+            freqs.append(2**((i-49)/12) * 440)
+
+        amps = self._get_amplitude_at_frequency(freqs, raw_data, rate)
+        self._update_colors(amps)
+
+    def _update_colors(self, freq_amps):
+
         self.sig_time_history.append(time.time())
 
         rgb_raw, _ = self._choose_rgb_signals(freq_amps)
+        print(rgb_raw)
         is_hit = self._is_hit(rgb_raw)
         if all(is_hit):
             # 7 in binary is 111, so I'm using this to determine boolean values for 3 ints
             bitwise_on = random.randint(1, 7)
-            print(bitwise_on)
             temp = [False] * 3
             if bitwise_on & 1 == 1:
                 temp[0] = True
