@@ -4,6 +4,7 @@ import pygame
 import pigpio
 from visualizer import ColorVisualizer
 from recording import Recording
+from __future__ import division
 
 # this runs on a pi, so make sure you update the name of your pi to the correct name
 pi_name = 'raspberrypi'

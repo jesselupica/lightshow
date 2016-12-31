@@ -3,6 +3,8 @@ import time
 import random
 import numpy
 import math
+from __future__ import division
+
 
 class ColorVisualizer: 
     ACCELERATION = 12.5
