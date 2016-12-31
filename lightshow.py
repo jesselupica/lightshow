@@ -1,101 +1,64 @@
-from sys import byteorder
 import sys
-from array import array
-from struct import pack
-from scipy.io import wavfile
-import math
-import numpy
-import pyaudio
-import wave
+import os
 import pygame
+import pigpio
 from visualizer import ColorVisualizer
+from recording import Recording
 
-THRESHOLD = 500
-CHUNK_SIZE = 1024
-FORMAT = pyaudio.paInt16
-RATE = 44100
+# this runs on a pi, so make sure you update the name of your pi to the correct name
+pi_name = 'raspberrypi'
 
-class Recording:
-    def __init__(self, playback=True, file_name=None):
-        p = pyaudio.PyAudio()
-        self.playback = playback
-        self.file_name = file_name
-        if file_name:
-            self.stream = wave.open(file_name, 'rb')
-        else:
-            self.stream = p.open(format=FORMAT, channels=1, rate=RATE,
-                                input=True, output=True,
-                                frames_per_buffer=CHUNK_SIZE)
-        if playback:
-            self.r_stream = self.stream 
-        self.is_over = False
+# The Pins. Use Broadcom numbers.
+RED_PIN   = 17
+GREEN_PIN = 22
+BLUE_PIN  = 24
 
-    def get_chunk(self):
-        try:
-            if self.file_name:
-                sound_data = array('h', self.stream.readframes(CHUNK_SIZE))
-            else: 
-                sound_data = array('h', self.stream.read(CHUNK_SIZE))
-                if byteorder == 'big':
-                    sound_data.byteswap()
-            if self.playback: 
-                self.r_stream.write(sound_data.tobytes())
-            return sound_data
-        except:
-            self.is_over = True
-            return None
+# global variables
+pi = None
+screen = None
 
-    def still_playing(self):
-        return not self.is_over
+def setup():
+    uname = os.uname()
+    if uname[1] == pi_name and uname[0] == 'Linux':
+        pi = pigpio.pi()
+    else: 
+        width, height = (300, 200)
+        black_color = 0,0,0
+        screen = pygame.display.set_mode((width, height))
+        screen.fill(black_color)
+        pygame.display.flip()
 
-def get_amplitude_at_frequency(freqs, aud_data, samp_freq):
-    s1 = numpy.array(aud_data)
-    n = len(s1) 
-    p = numpy.fft.fft(s1) / float(n) # take the fourier transform 
+def update_colors(red, green, blue):
+    uname = os.uname()
+    if uname[1] == pi_name and uname[0] == 'Linux':
+        pi.set_PWM_dutycycle(RED_PIN, red)
+        pi.set_PWM_dutycycle(GREEN_PIN, green)
+        pi.set_PWM_dutycycle(BLUE_PIN, blue)
+    else: 
+        screen.fill( (red, green, blue) )
+        pygame.display.flip()    
 
-    magnitude = [math.sqrt(x.real**2 + x.imag**2) for x in p]
-    return [ magnitude[int(freq * n / samp_freq)] for freq in freqs ]
-
-def get_dominant_frequency(samp_freq, aud_data):
-    s1 = numpy.array(aud_data)
-    n = len(s1) 
-    p = numpy.fft.fft(s1) / float(n) # take the fourier transform 
-
-    magnitude = [math.sqrt(x.real**2 + x.imag**2) for x in p]
-    max_mag = -float('inf')
-    max_index = -1
-    for i, x in enumerate(magnitude):
-        if x > max_mag:
-            max_mag= x
-            max_index = i
-
-    return max_index * samp_freq / n
-
-def visualize(screen, file_name=None):
+def visualize(file_name=None):
     # Start out white
-    light_visualizer = ColorVisualizer(255, 255, 255, RATE/CHUNK_SIZE)
     music = Recording(file_name=file_name, playback=True if file_name else False)
+    chunk_size, rate = music.spec()
+
+    light_visualizer = ColorVisualizer(255, 255, 255, rate/chunk_size)
+
     while music.still_playing(): 
         sound_data = music.get_chunk()
         if not sound_data:
             break
 
-        light_visualizer.visualize(sound_data, RATE)
-        screen.fill(light_visualizer.tuple())
-        pygame.display.flip()    
+        light_visualizer.visualize(sound_data, rate)
+        update_colors(*light_visualizer.tuple())
+
 
 if __name__ == '__main__':
-    (width, height) = (300, 200)
-    background_colour = (0,255,0)
-    black_color = 0,0,0
-
+    setup()
     print("Start recording...")
-
-    screen = pygame.display.set_mode((width, height))
-    screen.fill(black_color)
-    pygame.display.flip()
     if len(sys.argv) >= 2:
-        visualize(screen, file_name=sys.argv[1])
+        visualize(file_name=sys.argv[1])
     else:
-        visualize(screen)
+        visualize()
     print("done")
