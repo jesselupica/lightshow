@@ -1,10 +1,9 @@
+from __future__ import division
 from collections import deque
 import time
 import random
 import numpy
 import math
-from __future__ import division
-
 
 class ColorVisualizer: 
     ACCELERATION = 12.5
@@ -110,7 +109,6 @@ class ColorVisualizer:
         self.sig_time_history.append(time.time())
 
         rgb_raw, _ = self._choose_rgb_signals(freq_amps)
-        print(rgb_raw)
         is_hit = self._is_hit(rgb_raw)
         if all(is_hit):
             # 7 in binary is 111, so I'm using this to determine boolean values for 3 ints

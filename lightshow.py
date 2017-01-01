@@ -1,10 +1,11 @@
+from __future__ import division
 import sys
 import os
 import pygame
 import pigpio
 from visualizer import ColorVisualizer
 from recording import Recording
-from __future__ import division
+from subprocess import call
 
 # this runs on a pi, so make sure you update the name of your pi to the correct name
 pi_name = 'raspberrypi'
@@ -18,16 +19,17 @@ BLUE_PIN  = 24
 pi = None
 screen = None
 
-def setup():
-    uname = os.uname()
-    if uname[1] == pi_name and uname[0] == 'Linux':
-        pi = pigpio.pi()
-    else: 
-        width, height = (300, 200)
-        black_color = 0,0,0
-        screen = pygame.display.set_mode((width, height))
-        screen.fill(black_color)
-        pygame.display.flip()
+
+uname = os.uname()
+if uname[1] == pi_name and uname[0] == 'Linux':
+    pi = pigpio.pi()
+    print(pi)
+else: 
+    width, height = (300, 200)
+    black_color = 0,0,0
+    screen = pygame.display.set_mode((width, height))
+    screen.fill(black_color)
+    pygame.display.flip()
 
 def update_colors(red, green, blue):
     uname = os.uname()
@@ -56,7 +58,6 @@ def visualize(file_name=None):
 
 
 if __name__ == '__main__':
-    setup()
     print("Start recording...")
     if len(sys.argv) >= 2:
         visualize(file_name=sys.argv[1])
