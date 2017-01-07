@@ -34,29 +34,35 @@ else:
 def update_colors(red, green, blue):
     uname = os.uname()
     if uname[1] == pi_name and uname[0] == 'Linux':
-        pi.set_PWM_dutycycle(RED_PIN, red)
-        pi.set_PWM_dutycycle(GREEN_PIN, green)
-        pi.set_PWM_dutycycle(BLUE_PIN, blue)
+        pi.set_PWM_dutycycle(RED_PIN, int(red))
+        pi.set_PWM_dutycycle(GREEN_PIN, int(green))
+        pi.set_PWM_dutycycle(BLUE_PIN, int(blue))
     else: 
         screen.fill( (red, green, blue) )
         pygame.display.flip()    
 
 def visualize(file_name=None):
-    # Start out white
-    music = Recording(file_name=file_name, playback=True if file_name else False)
-    chunk_size, rate = music.spec()
+    try:
+        # Start out white
+        music = Recording(file_name=file_name, playback=True if file_name else False)
+        chunk_size, rate = music.spec()
 
-    light_visualizer = ColorVisualizer(255, 255, 255, rate/chunk_size)
+        light_visualizer = ColorVisualizer(255, 255, 255, rate/chunk_size)
 
-    while music.still_playing(): 
-        sound_data = music.get_chunk()
-        if not sound_data:
-            break
+        while music.still_playing(): 
+            sound_data = music.get_chunk()
+            if not sound_data:
+                break
 
-        light_visualizer.visualize(sound_data, rate)
-        update_colors(*light_visualizer.tuple())
-
-
+            light_visualizer.visualize(sound_data, rate)
+            update_colors(*light_visualizer.tuple())
+    except KeyboardInterrupt:
+        pi.set_PWM_dutycycle(RED_PIN, 0)
+        pi.set_PWM_dutycycle(GREEN_PIN, 0)
+        pi.set_PWM_dutycycle(BLUE_PIN, 0)
+    except Exception as e:
+        print(e)
+        
 if __name__ == '__main__':
     print("Start recording...")
     if len(sys.argv) >= 2:

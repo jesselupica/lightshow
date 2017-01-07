@@ -7,8 +7,8 @@ import math
 
 class ColorVisualizer: 
     ACCELERATION = 12.5
-    INIT_RGB_COEFF = 12, 20, 16
-    GRAVITY = -6
+    INIT_RGB_COEFF = 20, 20, 16
+    GRAVITY = -8 #-6
     RGB_INTENSITY_MAX = 255
     RGB_INTENSITY_MIN = 0
     RGB_INTENSITY_THRESHOLD = 200
@@ -19,9 +19,12 @@ class ColorVisualizer:
     SIGNAL_INTENSITY_DRAG = 5
     SIGNAL_INTENSITY_GAIN = 30
 
-    HIT_CONST = 60
+    HIT_CONST = 90
     HIT_COEFF = 3.5 #3
 
+    BASELINE_FADE_MAX = 15
+    BASELINE_FADE_STEP = 0.1
+    
     def __init__(self, r, g, b, update_freq):
         r, g, b = self._bounds_check(r, g, b)
         self.red    = r if r > 1 else r * ColorVisualizer.RGB_INTENSITY_MAX
@@ -41,6 +44,10 @@ class ColorVisualizer:
 
         self.rgb_raw_signal_history = [deque([0], maxlen=5)] * 3
 
+        self.baseline_r = ColorVisualizer.BASELINE_FADE_MAX
+        self.baseline_g = 0
+        self.baseline_b = 0
+        
     def tuple(self):
         return (self.red, self.green, self.blue)
 
@@ -104,6 +111,38 @@ class ColorVisualizer:
         amps = self._get_amplitude_at_frequency(freqs, raw_data, rate)
         self._update_colors(amps)
 
+    def _baseline_fade(self):
+        # to make it easier to read
+        bl = ColorVisualizer.BASELINE_FADE_MAX
+        step = ColorVisualizer.BASELINE_FADE_STEP
+        if self.baseline_r == bl and self.baseline_b == 0 and self.baseline_g < bl:
+            self.baseline_g += step
+            self.baseline_g = min(self.baseline_g, bl)
+   
+        elif self.baseline_g == bl and self.baseline_b == 0 and self.baseline_r > 0:
+            self.baseline_r -= step
+            self.baseline_r = max(0, self.baseline_r)
+
+        elif self.baseline_r == 0 and self.baseline_g == bl and self.baseline_b < bl:
+            self.baseline_b += step
+            self.baseline_b = min(self.baseline_b, bl)
+            
+        elif self.baseline_r == 0 and self.baseline_b == bl and self.baseline_g > 0:
+            self.baseline_g -= step
+            self.baseline_g = max(0, self.baseline_g)
+
+        elif self.baseline_g == 0 and self.baseline_b == bl and self.baseline_r < bl:
+            self.baseline_r += step 
+            self.baseline_r = min(self.baseline_r, bl)
+
+        elif self.baseline_r == bl and self.baseline_g == 0 and self.baseline_b > 0:
+            self.baseline_b -= step
+            self.baseline_b = max(0, self.baseline_b)
+
+        self.red = max(self.baseline_r, self.red)
+        self.green = max(self.baseline_g, self.green)
+        self.blue = max(self.baseline_b, self.blue)
+            
     def _update_colors(self, freq_amps):
 
         self.sig_time_history.append(time.time())
@@ -142,10 +181,20 @@ class ColorVisualizer:
                     drag *= ColorVisualizer.INIT_RGB_COEFF[i]
                 self.signal_intensity_maxes[i] = max(ColorVisualizer.SIGNAL_INTENSITY_MAX_START, m_i - drag)
 
-        self.red += rv 
-        self.green += gv
-        self.blue += bv
+        
+        vels = [rv, gv,  bv]
+        min_index = min(enumerate(vels), key=lambda x: x[1])[0] 
 
+        vels[min_index] = ColorVisualizer.GRAVITY
+        
+        self.red += vels[0]
+        self.green += vels[1]
+        self.blue += vels[2]
+
+        #print(min([(rv,1), (gv, 2), (bv, 3)], key=lambda x: x[0]))
+        
+        self._baseline_fade()
+        
         self.red, self.green, self.blue = self._bounds_check(self.red, self.green, self.blue)
         rgb = [self.red, self.green, self.blue]
         for c, c_deque in zip(rgb, self.rgb_history):
