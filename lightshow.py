@@ -1,14 +1,22 @@
 from __future__ import division
 import sys
 import os
-import pygame
-import pigpio
-from visualizer import ColorVisualizer
+#from RGBVisualizer import RGBVisualizer
+from HSVVisualizer import HSVVisualizer
 from recording import Recording
 from subprocess import call
 
 # this runs on a pi, so make sure you update the name of your pi to the correct name
 pi_name = 'raspberrypi'
+
+light_mod_name = None
+uname = os.uname()
+if uname[1] == pi_name and uname[0] == 'Linux':
+    light_mod_name = 'pigpio'
+else: 
+    light_mod_name = 'pygame'
+
+light_source = __import__(light_mod_name)
 
 # The Pins. Use Broadcom numbers.
 RED_PIN   = 17
@@ -19,17 +27,16 @@ BLUE_PIN  = 24
 pi = None
 screen = None
 
-
 uname = os.uname()
 if uname[1] == pi_name and uname[0] == 'Linux':
-    pi = pigpio.pi()
+    pi = light_source.pi()
     print(pi)
 else: 
     width, height = (300, 200)
     black_color = 0,0,0
-    screen = pygame.display.set_mode((width, height))
+    screen = light_source.display.set_mode((width, height))
     screen.fill(black_color)
-    pygame.display.flip()
+    light_source.display.flip()
 
 def update_colors(red, green, blue):
     uname = os.uname()
@@ -39,7 +46,7 @@ def update_colors(red, green, blue):
         pi.set_PWM_dutycycle(BLUE_PIN, int(blue))
     else: 
         screen.fill( (red, green, blue) )
-        pygame.display.flip()    
+        light_source.display.flip()    
 
 def visualize(file_name=None):
     try:
@@ -47,7 +54,7 @@ def visualize(file_name=None):
         music = Recording(file_name=file_name, playback=True if file_name else False)
         chunk_size, rate = music.spec()
 
-        light_visualizer = ColorVisualizer(255, 255, 255, rate/chunk_size)
+        light_visualizer = HSVVisualizer(255, 255, 255)
 
         while True: 
             sound_data = music.get_chunk()
