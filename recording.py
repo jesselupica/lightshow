@@ -1,9 +1,7 @@
 from __future__ import division
 from sys import byteorder
 from array import array
-import pyaudio
 import wave
-import alsaaudio
 import os
 
 class Recording:
@@ -16,6 +14,7 @@ class Recording:
 
         uname = os.uname()
         if uname[0] == 'Linux':
+            import alsaaudio
             self.is_pi = True
             card = 'default'
             inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE, alsaaudio.PCM_NORMAL, card)
@@ -25,6 +24,7 @@ class Recording:
             inp.setperiodsize(Recording.CHUNK_SIZE)
             self.stream = inp
         else:
+            import 
             self.is_pi = False
             inp = pyaudio.PyAudio()
             if file_name:
