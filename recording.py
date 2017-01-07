@@ -7,7 +7,6 @@ import os
 class Recording:
 
     CHUNK_SIZE = 1024
-    FORMAT = pyaudio.paInt16
     RATE = 44100
 
     def __init__(self, playback=True, file_name=None):
@@ -24,13 +23,13 @@ class Recording:
             inp.setperiodsize(Recording.CHUNK_SIZE)
             self.stream = inp
         else:
-            import 
+            import pyaudio
             self.is_pi = False
             inp = pyaudio.PyAudio()
             if file_name:
                 self.stream = wave.open(file_name, 'rb')
             else:
-                self.stream = inp.open(format=Recording.FORMAT, channels=1, rate=Recording.RATE,
+                self.stream = inp.open(format=pyaudio.paInt16, channels=1, rate=Recording.RATE,
                                  input=True,
                                 frames_per_buffer=Recording.CHUNK_SIZE)
             if playback:

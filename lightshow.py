@@ -1,6 +1,7 @@
 from __future__ import division
 import sys
 import os
+import traceback
 #from RGBVisualizer import RGBVisualizer
 from HSVVisualizer import HSVVisualizer
 from recording import Recording
@@ -70,6 +71,7 @@ def visualize(file_name=None):
         pi.set_PWM_dutycycle(BLUE_PIN, 0)
     except Exception as e:
         print(e)
+        print(traceback.format_exc())
         
 if __name__ == '__main__':
     print("Start recording...")
