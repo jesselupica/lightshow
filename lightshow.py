@@ -49,10 +49,11 @@ def visualize(file_name=None):
 
         light_visualizer = ColorVisualizer(255, 255, 255, rate/chunk_size)
 
-        while music.still_playing(): 
+        while True: 
             sound_data = music.get_chunk()
             if not sound_data:
-                break
+                print("no sound data")
+                continue
 
             light_visualizer.visualize(sound_data, rate)
             update_colors(*light_visualizer.tuple())
