@@ -3,7 +3,7 @@ from visualizer import Visualizer
 from collections import deque, namedtuple
 import colorsys
 
-State = namedtuple('State', ['spectrum', 'is_hit'])
+State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val'])
 
 class HSVVisualizer(Visualizer):
     
@@ -27,8 +27,10 @@ class HSVVisualizer(Visualizer):
             freqs.append(2**((i-49)/12) * 440)
 
         amps = self._get_amplitude_at_frequency(freqs, raw_data, rate)
-        is_hit = self._update_colors(amps)
-        self.state_deque.append(State(amps, is_hit))
+        is_hit, local_maxima = self._update_colors(amps)
+
+        index, value = max(enumerate(amps), key=operator.itemgetter(1))
+        self.state_deque.append(State(amps, is_hit, local_maxima, index))
         
     def _bounds_check(self):
         self.hue = self.hue + 1 if self.hue < 0 else self.hue 
@@ -54,11 +56,9 @@ class HSVVisualizer(Visualizer):
                 incr = False
         return max_indices
 
-    def _is_hit(self, freq_amps):
-
+    def _is_hit(self, freq_amps, local_maxima):
         hit_coeff = 8.0
 
-        local_maxima = self._find_local_maxes(freq_amps)
         if len(self.state_deque) >= 1: 
             for i in local_maxima:
                avg = sum((d.spectrum[i] for d in self.state_deque))/len(self.state_deque)
@@ -75,10 +75,11 @@ class HSVVisualizer(Visualizer):
         return count
     
     def _update_colors(self, freq_amps):
-
         avgamount = 50
 
-        #is_hit = self._is_hit(freq_amps)
+        local_maxima = self._find_local_maxes(freq_amps)
+
+        #is_hit = self._is_hit(freq_amps, local_maxima)
         #if is_hit:
         #    shift = (0.2 - .02 * self._num_hits_in_hist()) 
         #    self.value += shift
@@ -86,10 +87,9 @@ class HSVVisualizer(Visualizer):
 
         is_hit = False
         
-        sample_mean = sum(freq_amps)/len(freq_amps)
         print(sample_mean)
         # Code for hue pusher taken from Sitar Harel and his LEDControl program
         self.hue = self.hue + (sample_mean - self.hue) * (1.0/avgamount);
         #self.value -= 0.01
         self._bounds_check()
-        return is_hit
+        return is_hit, local_maxima
