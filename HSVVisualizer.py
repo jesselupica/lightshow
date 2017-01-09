@@ -16,6 +16,7 @@ class HSVVisualizer(Visualizer):
         self.value = 1
         self.state_deque = deque([], maxlen=HSVVisualizer.HISTORY_SIZE)
         self.hue_chaser = 0
+        self.value_chaser = 0
         
     def tuple(self):
         rgb = tuple( x * Visualizer.RGB_INTENSITY_MAX for x in colorsys.hsv_to_rgb(self.hue, self.saturation, self.value))
@@ -83,6 +84,9 @@ class HSVVisualizer(Visualizer):
         hue_avgamount = 40
         hue_scale = 0.035
 
+        value_avgamount = 100
+        value_scale = 0.035
+
         local_maxima = self._find_local_maxes(freq_amps)
 
         is_hit = self._is_hit(freq_amps, local_maxima)
@@ -94,17 +98,25 @@ class HSVVisualizer(Visualizer):
 
         if len(self.state_deque) > 5:
             sd = list(self.state_deque)[-5:]
-            avg = [0] * len(freq_amps) 
+            summed_amps = [0] * len(freq_amps) 
             for state in sd:
                 for i, x in enumerate(state.spectrum):
-                    avg[i] += x
-            avg_max, av_max_val = max(enumerate(x/len(sd) for x in avg), key=lambda x: x[1])
+                    summed_amps[i] += x
+            avg_amps = [x/len(sd) for x in summed_amps]
+            avg_max = max(enumerate(avg_amps), key=lambda x: x[1])[0]
         
             # Code for hue pusher taken from Sitar Harel and his LEDControl program
-            chaser_diff = (avg_max - self.hue_chaser) / hue_avgamount
+            h_chaser_diff = (avg_max - self.hue_chaser) / hue_avgamount
 
-            self.hue_chaser += chaser_diff
-            self.hue = self.hue + chaser_diff * hue_scale
+            self.hue_chaser += h_chaser_diff
+            self.hue = self.hue + h_chaser_diff * hue_scale
+
+            avg_volume = sum(avg_amps)/len(avg_amps)
+            v_chaser_diff = (avg_volume - self.value_chaser) / value_avgamount 
+            self.value_chaser += v_chaser_diff
+            self.value = self.value + v_chaser_diff * value_scale
+
+
         
         self._bounds_check()
         return is_hit, local_maxima
