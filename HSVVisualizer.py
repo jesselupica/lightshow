@@ -4,7 +4,7 @@ from collections import deque, namedtuple
 import colorsys
 import random
 
-State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val'])
+State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'avg_amp', 'val_hit'])
 
 class HSVVisualizer(Visualizer):
     
@@ -17,6 +17,9 @@ class HSVVisualizer(Visualizer):
         self.state_deque = deque([], maxlen=HSVVisualizer.HISTORY_SIZE)
         self.hue_chaser = 0
         self.value_chaser = 0
+        self.value_max = 0.5
+        self.value_min = 0.5
+        
         
     def tuple(self):
         rgb = tuple( x * Visualizer.RGB_INTENSITY_MAX for x in colorsys.hsv_to_rgb(self.hue, self.saturation, self.value))
@@ -30,10 +33,12 @@ class HSVVisualizer(Visualizer):
             freqs.append(2**((i-49)/12) * 440)
 
         amps = self._get_amplitude_at_frequency(freqs, raw_data, rate)
-        is_hit, local_maxima = self._update_colors(amps)
+        is_hit, local_maxima, val_hit = self._update_colors(amps)
 
         index, value = max(enumerate(amps), key=lambda x: x[1])
-        self.state_deque.append(State(amps, is_hit, local_maxima, index))
+        avg_amp = sum(amps)/len(amps)
+        
+        self.state_deque.append(State(amps, is_hit, local_maxima, index, avg_amp, val_hit))
         
     def _bounds_check(self):
         self.hue = self.hue + 1 if self.hue < 0 else self.hue 
@@ -44,8 +49,7 @@ class HSVVisualizer(Visualizer):
         self.saturation = max(self.saturation, 0)
         self.value = max(self.value, 0)
         
-    def _find_local_maxes(self, lst):
-        max_threshold = 0.0
+    def _find_local_maxes(self, lst,max_threshold=0):
         max_val = max(lst)
         max_indices = []
         incr = True
@@ -59,8 +63,7 @@ class HSVVisualizer(Visualizer):
                 incr = False
         return max_indices
 
-    def _is_hit(self, freq_amps, local_maxima):
-        hit_coeff = 10.0
+    def _is_hit(self, freq_amps, local_maxima, hit_coeff):
         sd = list(self.state_deque)[-1 * HSVVisualizer.HISTORY_SAMPLE:]
 
         if len(sd) >= 1: 
@@ -71,38 +74,50 @@ class HSVVisualizer(Visualizer):
                    return True
         return False
 
-    def _num_hits_in_hist(self):
+    def _num_hits_in_hist(self, val=False):
         count = 0
         sd = list(self.state_deque)[-1 * HSVVisualizer.HISTORY_SAMPLE:]
         
         for state in sd:
-            if state.is_hit:
+            if (state.val_hit and val) or (state.is_hit and not val):
                 count += 1
         return count
+    
+    def _avg_last_n_states(self, n, amp_size):
+        sd = list(self.state_deque)[(-1 * n):]
+        summed_amps = [0] * amp_size 
+        for state in sd:
+            for i, x in enumerate(state.spectrum):
+                summed_amps[i] += x
+        return [x/len(sd) for x in summed_amps]
 
+    def _update_value_min_and_max(self, pull_amount):
+        self.value_max = max(self.value_max, self.value_chaser)
+        self.value_min = min(self.value_min, self.value_chaser)
+        self.value_max -= pull_amount
+        self.value_min += pull_amount
+    
     def _update_colors(self, freq_amps):
         hue_avgamount = 40
         hue_scale = 0.035
 
-        value_avgamount = 100
-        value_scale = 0.035
+        value_avgamount = 10
+        value_pull = 0.05
+
+        is_val_hit = True
 
         local_maxima = self._find_local_maxes(freq_amps)
 
-        is_hit = self._is_hit(freq_amps, local_maxima)
+        is_hit = self._is_hit(freq_amps, local_maxima, 6)
         if is_hit:
-            shift = random.choice([-1, 1]) * (0.2 *(1/ (1+ self._num_hits_in_hist()))) 
-            self.value += shift
-            self.hue += shift
-            
+            shift = (0.2 *(1/ (1+ self._num_hits_in_hist()))) 
+            #self.value += shift/2
+            self.value_chaser += shift
+            self.hue_chaser += shift
+        
 
         if len(self.state_deque) > 5:
-            sd = list(self.state_deque)[-5:]
-            summed_amps = [0] * len(freq_amps) 
-            for state in sd:
-                for i, x in enumerate(state.spectrum):
-                    summed_amps[i] += x
-            avg_amps = [x/len(sd) for x in summed_amps]
+            avg_amps = self._avg_last_n_states(5, len(freq_amps))
             avg_max = max(enumerate(avg_amps), key=lambda x: x[1])[0]
         
             # Code for hue pusher taken from Sitar Harel and his LEDControl program
@@ -111,12 +126,35 @@ class HSVVisualizer(Visualizer):
             self.hue_chaser += h_chaser_diff
             self.hue = self.hue + h_chaser_diff * hue_scale
 
-            avg_volume = sum(avg_amps)/len(avg_amps)
-            v_chaser_diff = (avg_volume - self.value_chaser) / value_avgamount 
-            self.value_chaser += v_chaser_diff
-            self.value = self.value + v_chaser_diff * value_scale
+        mean_amp = sum(freq_amps)/len(freq_amps)
 
+        v_chaser_diff = (mean_amp - self.value_chaser) / value_avgamount
+        self.value_chaser += v_chaser_diff
+        self._update_value_min_and_max(value_pull)
+        self.value = (self.value_chaser - self.value_min)/ (self.value_max - self.value_min)
 
+            
+        '''
+        local_maxima = self._find_local_maxes(freq_amps, max_threshold=0.1)
+        is_val_hit = self._is_hit(freq_amps, local_maxima, 4.5)
+
+        if is_val_hit:
+            shift = (0.5 * (1/(1+ self._num_hits_in_hist(val=True)))) 
+            self.value += shift
+        else:
+            self.value += -self.value/value_avgamount
+        '''
+        '''avg_volume = sum(avg_amps)/len(avg_amps)
+
+    
+        v_chaser_diff = ( - self.value_chaser) / value_avgamount 
+        self.value_chaser += v_chaser_diff
+        self.value = self.value + v_chaser_diff * value_scale
+
+        ''' 
+        
         
         self._bounds_check()
-        return is_hit, local_maxima
+        print (round(self.hue,3), round(self.saturation,3), round(self.value, 3))
+        return is_hit, local_maxima, is_val_hit
+    
