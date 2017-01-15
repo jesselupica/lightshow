@@ -95,6 +95,10 @@ def control_visualizer_settings(light_visualizer):
         
         if c == ' ':
             light_visualizer.toggle_music_visualization()
+        elif c == '+':
+            light_visualizer.update_bass_treble_ratio(True)
+        elif c == '-':
+            light_visualizer.update_bass_treble_ratio(False)
         elif c.isdigit():
             light_visualizer.set_color(color_dict[int(c)])
         elif c.lower() == 'c':

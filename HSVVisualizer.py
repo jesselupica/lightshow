@@ -4,7 +4,7 @@ from collections import deque, namedtuple
 import colorsys
 import random
 
-State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'avg_amp', 'val_hit'])
+State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'avg_amp'])
 
 class HSVVisualizer(Visualizer):
 
@@ -20,9 +20,18 @@ class HSVVisualizer(Visualizer):
         self.value = 1
         self.state_deque = deque([], maxlen=HSVVisualizer.HISTORY_SIZE)
         self.hue_chaser = 0
-        self.value_chaser = 0
-        self.value_max = 0.5
-        self.value_min = 0.5
+        
+        self.bass_value_chaser = 0
+        self.treble_value_chaser = 0
+        
+        self.bass_value_max = 0.5
+        self.bass_value_min = 0.5
+
+        self.treble_value_max = 0.5
+        self.treble_value_min = 0.5
+
+        self.bass_treble_ratio = 0.5
+
         self.visualize_music = True
         self.static_color = 'BLUE'
         
@@ -38,7 +47,14 @@ class HSVVisualizer(Visualizer):
         self.saturation = 1
         self.value = 1
         self.hue = HSVVisualizer.COLOR_TABLE[color]
-        
+    
+    def update_bass_treble_ratio(self, increase):
+        incr = 0.05
+        if increase:
+            self.bass_treble_ratio += incr
+        else:
+            self.bass_treble_ratio -= incr
+        self.bass_treble_ratio = min(1, self.bass_treble_ratio)
     
     def toggle_music_visualization(self):
         self.visualize_music = not self.visualize_music
@@ -54,12 +70,12 @@ class HSVVisualizer(Visualizer):
                 freqs.append(2**((i-49)/12) * 440)
             
             amps = self._get_amplitude_at_frequency(freqs, raw_data, rate)
-            is_hit, local_maxima, val_hit = self._update_colors(amps)
+            is_hit, local_maxima = self._update_colors(amps)
 
             index, value = max(enumerate(amps), key=lambda x: x[1])
             avg_amp = sum(amps)/len(amps)
         
-            self.state_deque.append(State(amps, is_hit, local_maxima, index, avg_amp, val_hit))
+            self.state_deque.append(State(amps, is_hit, local_maxima, index, avg_amp))
         
     def _bounds_check(self):
         self.hue = self.hue + 1 if self.hue < 0 else self.hue 
@@ -111,31 +127,35 @@ class HSVVisualizer(Visualizer):
                 summed_amps[i] += x
         return [x/len(sd) for x in summed_amps]
 
-    def _update_value_min_and_max(self, pull_amount):
-        self.value_max = max(self.value_max, self.value_chaser)
-        self.value_min = min(self.value_min, self.value_chaser)
-        self.value_max -= pull_amount
-        self.value_min += pull_amount
+    def _update_value_min_and_max(self, bass_pull_amount, treble_pull_amount):
+        self.bass_value_max = max(self.bass_value_max, self.bass_value_chaser)
+        self.base_value_min = min(self.bass_value_min, self.bass_value_chaser)
+        self.bass_value_max -= bass_pull_amount
+        self.bass_value_min += bass_pull_amount
+
+        self.treble_value_max = max(self.treble_value_max, self.treble_value_chaser)
+        self.base_value_min = min(self.treble_value_min, self.treble_value_chaser)
+        self.treble_value_max -= treble_pull_amount
+        self.treble_value_min += treble_pull_amount
     
     def _update_colors(self, freq_amps):
         hue_avgamount = 40
         hue_scale = 0.035
 
-        value_avgamount = 10
-        value_pull = 0.05
+        bass_value_avgamount = 10
+        bass_value_pull = 0.05
 
-        is_val_hit = True
+        treble_value_avgamount = 10
+        treble_value_pull = 0.05
 
         local_maxima = self._find_local_maxes(freq_amps)
 
         is_hit = self._is_hit(freq_amps, local_maxima, 6)
         if is_hit:
             shift = (0.2 *(1/ (1+ self._num_hits_in_hist()))) 
-            #self.value += shift/2
             self.value_chaser += shift
             self.hue_chaser += shift
         
-
         if len(self.state_deque) > 5:
             avg_amps = self._avg_last_n_states(5, len(freq_amps))
             avg_max = max(enumerate(avg_amps), key=lambda x: x[1])[0]
@@ -146,34 +166,22 @@ class HSVVisualizer(Visualizer):
             self.hue_chaser += h_chaser_diff
             self.hue = self.hue + h_chaser_diff * hue_scale
 
-        mean_amp = sum(freq_amps)/len(freq_amps)
+        bass = freq_amps[:HSVVisualizer.TREBLE_BASS_DIVIDE]
+        treble = freq_amps[HSVVisualizer.TREBLE_BASS_DIVIDE:]
 
-        v_chaser_diff = (mean_amp - self.value_chaser) / value_avgamount
-        self.value_chaser += v_chaser_diff
-        self._update_value_min_and_max(value_pull)
-        self.value = (self.value_chaser - self.value_min)/ (self.value_max - self.value_min)
+        bass_mean_amp = sum(bass)/len(bass)
+        treble_mean_amp = sum(treble)/len(treble)
 
-            
-        '''
-        local_maxima = self._find_local_maxes(freq_amps, max_threshold=0.1)
-        is_val_hit = self._is_hit(freq_amps, local_maxima, 4.5)
+        bass_v_chaser_diff = (bass_mean_amp - self.bass_value_chaser) / bass_value_avgamount
+        treble_v_chaser_diff = (treble_mean_amp - self.treble_value_chaser) / treble_value_avgamount
 
-        if is_val_hit:
-            shift = (0.5 * (1/(1+ self._num_hits_in_hist(val=True)))) 
-            self.value += shift
-        else:
-            self.value += -self.value/value_avgamount
-        '''
-        '''avg_volume = sum(avg_amps)/len(avg_amps)
+        self.bass_value_chaser += bass_v_chaser_diff
+        self.treble_value_chaser += treble_v_chaser_diff
+        self._update_value_min_and_max(bass_value_pull, treble_value_pull)
+        bass_val = (self.bass_value_chaser - self.bass_value_min)/ (self.bass_value_max - self.bass_value_min)
+        treble_val = (self.treble_value_chaser - self.treble_value_min)/ (self.treble_value_max - self.treble_value_min)
+        self.value = bass_val * self.bass_treble_ratio + treble_val * (1 - self.bass_treble_ratio)
 
-    
-        v_chaser_diff = ( - self.value_chaser) / value_avgamount 
-        self.value_chaser += v_chaser_diff
-        self.value = self.value + v_chaser_diff * value_scale
-
-        ''' 
-        
-        
         self._bounds_check()
-        return is_hit, local_maxima, is_val_hit
+        return is_hit, local_maxima
     
