@@ -153,7 +153,8 @@ class HSVVisualizer(Visualizer):
         is_hit = self._is_hit(freq_amps, local_maxima, 6)
         if is_hit:
             shift = (0.2 *(1/ (1+ self._num_hits_in_hist()))) 
-            self.value_chaser += shift
+            self.bass_value_chaser += shift
+            self.treble_value_chaser += shift
             self.hue_chaser += shift
         
         if len(self.state_deque) > 5:
