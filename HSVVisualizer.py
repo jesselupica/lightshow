@@ -7,6 +7,8 @@ import random
 State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'avg_amp', 'val_hit'])
 
 class HSVVisualizer(Visualizer):
+
+    COLOR_TABLE = {'BLUE': float(2)/3, 'RED': 1, 'GREEN': float(1)/3}
     
     HISTORY_SIZE = 50
     HISTORY_SAMPLE = 10
@@ -19,26 +21,42 @@ class HSVVisualizer(Visualizer):
         self.value_chaser = 0
         self.value_max = 0.5
         self.value_min = 0.5
-        
+        self.visualize_music = True
+        self.static_color = 'BLUE'
         
     def tuple(self):
         rgb = tuple( x * Visualizer.RGB_INTENSITY_MAX for x in colorsys.hsv_to_rgb(self.hue, self.saturation, self.value))
         return rgb
 
+    def set_color(self, color):
+        if color == 'BLACK':
+            self.value = 0
+            return
+
+        self.saturation = 1
+        self.value = 1
+        self.hue = HSVVisualizer.COLOR_TABLE[color]
         
+    
+    def toggle_music_visualization(self):
+        self.visualize_music = not self.visualize_music
+        if not self.visualize_music:
+            self.set_color(self.static_color)
+    
     def visualize(self, raw_data, rate):
-        freqs = []
-        for i in range(1, 88):
-            # Taken from wikipedia for calculating frequency of each note on 88 key piano
-            freqs.append(2**((i-49)/12) * 440)
+        if self.visualize_music:
+            freqs = []
+            for i in range(1, 88):
+                # Taken from wikipedia for calculating frequency of each note on 88 key piano
+                freqs.append(2**((i-49)/12) * 440)
 
-        amps = self._get_amplitude_at_frequency(freqs, raw_data, rate)
-        is_hit, local_maxima, val_hit = self._update_colors(amps)
+            amps = self._get_amplitude_at_frequency(freqs, raw_data, rate)
+            is_hit, local_maxima, val_hit = self._update_colors(amps)
 
-        index, value = max(enumerate(amps), key=lambda x: x[1])
-        avg_amp = sum(amps)/len(amps)
+            index, value = max(enumerate(amps), key=lambda x: x[1])
+            avg_amp = sum(amps)/len(amps)
         
-        self.state_deque.append(State(amps, is_hit, local_maxima, index, avg_amp, val_hit))
+            self.state_deque.append(State(amps, is_hit, local_maxima, index, avg_amp, val_hit))
         
     def _bounds_check(self):
         self.hue = self.hue + 1 if self.hue < 0 else self.hue 
@@ -70,7 +88,6 @@ class HSVVisualizer(Visualizer):
             for i in local_maxima:
                avg = sum((d.spectrum[i] for d in sd))/len(sd)
                if freq_amps[i] > hit_coeff * avg:
-                   print(local_maxima)
                    return True
         return False
 
@@ -155,6 +172,5 @@ class HSVVisualizer(Visualizer):
         
         
         self._bounds_check()
-        print (round(self.hue,3), round(self.saturation,3), round(self.value, 3))
         return is_hit, local_maxima, is_val_hit
     

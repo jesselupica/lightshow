@@ -1,11 +1,15 @@
 from __future__ import division
 import sys
+import termios
+import tty
 import os
 import traceback
+import threading, thread
 #from RGBVisualizer import RGBVisualizer
 from HSVVisualizer import HSVVisualizer
 from recording import Recording
 from subprocess import call
+
 
 # this runs on a pi, so make sure you update the name of your pi to the correct name
 pi_name = 'raspberrypi'
@@ -49,18 +53,16 @@ def update_colors(red, green, blue):
         screen.fill( (red, green, blue) )
         light_source.display.flip()    
 
-def visualize(file_name=None):
+def visualize(light_visualizer, file_name=None):
     try:
         # Start out white
         music = Recording(file_name=file_name, playback=True if file_name else False)
         chunk_size, rate = music.spec()
 
-        light_visualizer = HSVVisualizer(255, 255, 255)
-
         while True: 
             sound_data = music.get_chunk()
             if not sound_data:
-                print("no sound data")
+                # print("no sound data")
                 continue
 
             light_visualizer.visualize(sound_data, rate)
@@ -72,11 +74,52 @@ def visualize(file_name=None):
     except Exception as e:
         print(e)
         print(traceback.format_exc())
+
+def get_ch():
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+
+    try:
+        tty.setraw(fd)
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    return ch
+
+def control_visualizer_settings(light_visualizer):
+    while True:
+        c = get_ch()
+
+        color_dict = {1: 'RED', 2: 'BLUE', 3: 'GREEN', 4: 'PURPLE', 5: 'AQUA'}
+        
+        if c == ' ':
+            light_visualizer.toggle_music_visualization()
+        elif c.isdigit():
+            light_visualizer.set_color(color_dict[int(c)])
+        elif c.lower() == 'c':
+            break
+    if light_visualizer.visualize_music:
+        light_visualizer.toggle_music_visualization()
+    light_visualizer.set_color('BLACK')
+    update_colors(*light_visualizer.tuple())
+    os._exit(0)
+
         
 if __name__ == '__main__':
     print("Start recording...")
+    print("Press 'C' to turn lights off")
+    print("Press SPACE to toggle music visualization")
+    print("Press the following buttons to change the lights to that color")
+    print("1: RED, 2: BLUE, 3: GREEN, 4: PURPLE, 5: AQUA")
+
+    light_visualizer = HSVVisualizer(255, 255, 255)
+
+    t = threading.Thread(target=control_visualizer_settings, args=(light_visualizer,))
+    t.daemon = True
+    t.start()
     if len(sys.argv) >= 2:
-        visualize(file_name=sys.argv[1])
+        visualize(light_visualizer, file_name=sys.argv[1])
     else:
-        visualize()
+        visualize(light_visualizer)
     print("done")
