@@ -12,6 +12,8 @@ class HSVVisualizer(Visualizer):
     
     HISTORY_SIZE = 50
     HISTORY_SAMPLE = 10
+    TREBLE_BASS_DIVIDE = 47
+    
     def __init__(self, r, g, b):
         self.hue = 1
         self.saturation = 1
@@ -46,10 +48,11 @@ class HSVVisualizer(Visualizer):
     def visualize(self, raw_data, rate):
         if self.visualize_music:
             freqs = []
+            
             for i in range(1, 88):
                 # Taken from wikipedia for calculating frequency of each note on 88 key piano
                 freqs.append(2**((i-49)/12) * 440)
-
+            
             amps = self._get_amplitude_at_frequency(freqs, raw_data, rate)
             is_hit, local_maxima, val_hit = self._update_colors(amps)
 
