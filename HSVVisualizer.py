@@ -12,7 +12,7 @@ class HSVVisualizer(Visualizer):
     
     HISTORY_SIZE = 50
     HISTORY_SAMPLE = 10
-    TREBLE_BASS_DIVIDE = 47
+    TREBLE_BASS_DIVIDE = 30
     
     def __init__(self, r, g, b):
         self.hue = 1
@@ -30,7 +30,7 @@ class HSVVisualizer(Visualizer):
         self.treble_value_max = 0.5
         self.treble_value_min = 0.5
 
-        self.bass_treble_ratio = 0.5
+        self.bass_treble_ratio = 0.6
 
         self.visualize_music = True
         self.static_color = 'BLUE'
@@ -55,7 +55,9 @@ class HSVVisualizer(Visualizer):
         else:
             self.bass_treble_ratio -= incr
         self.bass_treble_ratio = min(1, self.bass_treble_ratio)
-    
+        self.bass_treble_ratio = max(0, self.bass_treble_ratio)
+        print(self.bass_treble_ratio)
+        
     def toggle_music_visualization(self):
         self.visualize_music = not self.visualize_music
         if not self.visualize_music:
@@ -115,7 +117,7 @@ class HSVVisualizer(Visualizer):
         sd = list(self.state_deque)[-1 * HSVVisualizer.HISTORY_SAMPLE:]
         
         for state in sd:
-            if (state.val_hit and val) or (state.is_hit and not val):
+            if state.is_hit and not val:
                 count += 1
         return count
     
@@ -129,12 +131,12 @@ class HSVVisualizer(Visualizer):
 
     def _update_value_min_and_max(self, bass_pull_amount, treble_pull_amount):
         self.bass_value_max = max(self.bass_value_max, self.bass_value_chaser)
-        self.base_value_min = min(self.bass_value_min, self.bass_value_chaser)
+        self.bass_value_min = min(self.bass_value_min, self.bass_value_chaser)
         self.bass_value_max -= bass_pull_amount
         self.bass_value_min += bass_pull_amount
 
         self.treble_value_max = max(self.treble_value_max, self.treble_value_chaser)
-        self.base_value_min = min(self.treble_value_min, self.treble_value_chaser)
+        self.treble_value_min = min(self.treble_value_min, self.treble_value_chaser)
         self.treble_value_max -= treble_pull_amount
         self.treble_value_min += treble_pull_amount
     
@@ -143,10 +145,10 @@ class HSVVisualizer(Visualizer):
         hue_scale = 0.035
 
         bass_value_avgamount = 10
-        bass_value_pull = 0.05
+        bass_value_pull = 0.1
 
         treble_value_avgamount = 10
-        treble_value_pull = 0.05
+        treble_value_pull = 0.1
 
         local_maxima = self._find_local_maxes(freq_amps)
 
@@ -182,7 +184,7 @@ class HSVVisualizer(Visualizer):
         bass_val = (self.bass_value_chaser - self.bass_value_min)/ (self.bass_value_max - self.bass_value_min)
         treble_val = (self.treble_value_chaser - self.treble_value_min)/ (self.treble_value_max - self.treble_value_min)
         self.value = bass_val * self.bass_treble_ratio + treble_val * (1 - self.bass_treble_ratio)
-
+#        print ( self.bass_value_chaser, self.treble_value_chaser)
         self._bounds_check()
         return is_hit, local_maxima
     
