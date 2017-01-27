@@ -5,10 +5,13 @@ import tty
 import os
 import traceback
 import threading, thread
+import webserver
+from time import sleep
 #from RGBVisualizer import RGBVisualizer
 from HSVVisualizer import HSVVisualizer
 from recording import Recording
 from subprocess import call
+
 
 
 # this runs on a pi, so make sure you update the name of your pi to the correct name
@@ -65,6 +68,11 @@ def visualize(light_visualizer, file_name=None):
                 # print("no sound data")
                 continue
 
+            if light_visualizer.is_asleep:
+                sleep(1)
+            if light_visualizer.is_off:
+                sleep(10)
+
             light_visualizer.visualize(sound_data, rate)
             update_colors(*light_visualizer.tuple())
     except KeyboardInterrupt:
@@ -119,9 +127,14 @@ if __name__ == '__main__':
 
     light_visualizer = HSVVisualizer(255, 255, 255)
 
-    t = threading.Thread(target=control_visualizer_settings, args=(light_visualizer,))
-    t.daemon = True
-    t.start()
+    t1 = threading.Thread(target=control_visualizer_settings, args=(light_visualizer,))
+    t1.daemon = True
+    t1.start()
+
+    t2 = threading.Thread(target=webserver.run_server, args=(light_visualizer,))
+    t2.daemon = True
+    t2.start()
+
     if len(sys.argv) >= 2:
         visualize(light_visualizer, file_name=sys.argv[1])
     else:

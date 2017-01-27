@@ -9,7 +9,8 @@ State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'a
 class HSVVisualizer(Visualizer):
 
     COLOR_TABLE = {'BLUE': float(2)/3, 'RED': 1, 'GREEN': float(1)/3}
-    
+    LIGHT_MODES = ['VISUALIZE_MUSIC', 'STATIC_COLOR', 'FADE', 'ASLEEP', 'OFF']
+
     HISTORY_SIZE = 50
     HISTORY_SAMPLE = 10
     TREBLE_BASS_DIVIDE = 47
@@ -32,14 +33,20 @@ class HSVVisualizer(Visualizer):
 
         self.bass_treble_ratio = 0.5
 
+        # initialize to music visualization 
+        self.mode = HSVVisualizer.LIGHT_MODES[0]
         self.visualize_music = True
         self.static_color = 'BLUE'
+        self.fade_speed = 0.01
+        self.is_off = False
+        self.is_asleep = False
         
     def tuple(self):
         rgb = tuple( x * Visualizer.RGB_INTENSITY_MAX for x in colorsys.hsv_to_rgb(self.hue, self.saturation, self.value))
         return rgb
 
     def set_color(self, color):
+        self.static_color = color
         if color == 'BLACK':
             self.value = 0
             return
@@ -47,7 +54,7 @@ class HSVVisualizer(Visualizer):
         self.saturation = 1
         self.value = 1
         self.hue = HSVVisualizer.COLOR_TABLE[color]
-    
+
     def update_bass_treble_ratio(self, increase):
         incr = 0.05
         if increase:
@@ -61,8 +68,13 @@ class HSVVisualizer(Visualizer):
         if not self.visualize_music:
             self.set_color(self.static_color)
     
+    def _update_fade(self):
+        self.hue += self.fade_speed
+        self._bounds_check()
+
     def visualize(self, raw_data, rate):
-        if self.visualize_music:
+        # Mode is visualize music
+        if self.mode == HSVVisualizer.LIGHT_MODES[0]:
             freqs = []
             
             for i in range(1, 88):
@@ -76,7 +88,14 @@ class HSVVisualizer(Visualizer):
             avg_amp = sum(amps)/len(amps)
         
             self.state_deque.append(State(amps, is_hit, local_maxima, index, avg_amp))
-        
+        # Mode is static color
+        elif self.mode == HSVVisualizer.LIGHT_MODES[1]:
+            self.set_color(self.static_color)
+        # Mode is fade
+        elif self.mode == HSVVisualizer.LIGHT_MODES[2]:
+            self._update_fade()
+
+
     def _bounds_check(self):
         self.hue = self.hue + 1 if self.hue < 0 else self.hue 
         self.saturation = min(self.saturation, 1)
@@ -129,14 +148,17 @@ class HSVVisualizer(Visualizer):
 
     def _update_value_min_and_max(self, bass_pull_amount, treble_pull_amount):
         self.bass_value_max = max(self.bass_value_max, self.bass_value_chaser)
-        self.base_value_min = min(self.bass_value_min, self.bass_value_chaser)
+        self.bass_value_min = min(self.bass_value_min, self.bass_value_chaser)
         self.bass_value_max -= bass_pull_amount
         self.bass_value_min += bass_pull_amount
 
         self.treble_value_max = max(self.treble_value_max, self.treble_value_chaser)
-        self.base_value_min = min(self.treble_value_min, self.treble_value_chaser)
+        self.treble_value_min = min(self.treble_value_min, self.treble_value_chaser)
         self.treble_value_max -= treble_pull_amount
         self.treble_value_min += treble_pull_amount
+
+        if self.bass_value_max < 5 or self.treble_value_max < 5:
+            self.is_asleep = True
     
     def _update_colors(self, freq_amps):
         hue_avgamount = 40
