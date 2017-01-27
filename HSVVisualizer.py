@@ -45,7 +45,48 @@ class HSVVisualizer(Visualizer):
         rgb = tuple( x * Visualizer.RGB_INTENSITY_MAX for x in colorsys.hsv_to_rgb(self.hue, self.saturation, self.value))
         return rgb
 
+    def get_state(self):
+        return {'hue': self.hue, 'saturation': self.saturation, 'value':self.value, 'mode': self.mode, 'is_asleep':self.is_asleep}
+
+    def turn_off_lights(self):
+        self.set_color('BLACK')
+        self.mode = HSVVisualizer.LIGHT_MODES[4]
+        self.is_off = True
+        self.is_asleep = False
+
+    def turn_on_music_visualization(self):
+        self.mode = HSVVisualizer.LIGHT_MODES[0]
+        self.is_off = False
+        self.is_asleep = False
+        self.visualize_music = True
+
+    def turn_on_fade(self):
+        self.mode = HSVVisualizer.LIGHT_MODES[2]
+        self.visualize_music = False
+        self.value = 1
+        self.saturation = 1
+        self.is_off = False
+        self.is_asleep = False
+
+    def set_hue(self, hue):
+        self.visualize_music = False
+        self.mode = HSVVisualizer.LIGHT_MODES[1]
+        self.hue = hue
+        self._bounds_check()
+
+    def set_sat(self, sat):
+        self.saturation = sat
+        self._bounds_check()
+
+    def set_brightness(self, brightness):
+        self.visualize_music = False
+        self.mode = HSVVisualizer.LIGHT_MODES[1]
+        self.value = brightness
+        self._bounds_check()
+
     def set_color(self, color):
+        self.visualize_music = False
+        self.mode = HSVVisualizer.LIGHT_MODES[1]
         self.static_color = color
         if color == 'BLACK':
             self.value = 0
@@ -54,6 +95,7 @@ class HSVVisualizer(Visualizer):
         self.saturation = 1
         self.value = 1
         self.hue = HSVVisualizer.COLOR_TABLE[color]
+        self._bounds_check()
 
     def update_bass_treble_ratio(self, increase):
         incr = 0.05
@@ -69,14 +111,10 @@ class HSVVisualizer(Visualizer):
         self.visualize_music = not self.visualize_music
         if not self.visualize_music:
             self.set_color(self.static_color)
-    
-    def _update_fade(self):
-        self.hue += self.fade_speed
-        self._bounds_check()
 
     def visualize(self, raw_data, rate):
         # Mode is visualize music
-        if self.mode == HSVVisualizer.LIGHT_MODES[0]:
+        if self.mode == HSVVisualizer.LIGHT_MODES[0] or self.mode == HSVVisualizer.LIGHT_MODES[3]:
             freqs = []
             
             for i in range(1, 88):
@@ -97,6 +135,9 @@ class HSVVisualizer(Visualizer):
         elif self.mode == HSVVisualizer.LIGHT_MODES[2]:
             self._update_fade()
 
+    def _update_fade(self):
+        self.hue += self.fade_speed
+        self._bounds_check()
 
     def _bounds_check(self):
         self.hue = self.hue + 1 if self.hue < 0 else self.hue 
@@ -161,6 +202,10 @@ class HSVVisualizer(Visualizer):
 
         if self.bass_value_max < 5 or self.treble_value_max < 5:
             self.is_asleep = True
+            self.visualize_music = False
+        else: 
+            self.is_asleep = False
+            self.visualize_music = True
     
     def _update_colors(self, freq_amps):
         hue_avgamount = 40
@@ -189,7 +234,8 @@ class HSVVisualizer(Visualizer):
             h_chaser_diff = (avg_max - self.hue_chaser) / hue_avgamount
 
             self.hue_chaser += h_chaser_diff
-            self.hue = self.hue + h_chaser_diff * hue_scale
+            if self.visualize_music:
+                self.hue = self.hue + h_chaser_diff * hue_scale
 
         bass = freq_amps[:HSVVisualizer.TREBLE_BASS_DIVIDE]
         treble = freq_amps[HSVVisualizer.TREBLE_BASS_DIVIDE:]
@@ -205,7 +251,8 @@ class HSVVisualizer(Visualizer):
         self._update_value_min_and_max(bass_value_pull, treble_value_pull)
         bass_val = (self.bass_value_chaser - self.bass_value_min)/ (self.bass_value_max - self.bass_value_min)
         treble_val = (self.treble_value_chaser - self.treble_value_min)/ (self.treble_value_max - self.treble_value_min)
-        self.value = bass_val * self.bass_treble_ratio + treble_val * (1 - self.bass_treble_ratio)
+        if self.visualize_music:
+            self.value = bass_val * self.bass_treble_ratio + treble_val * (1 - self.bass_treble_ratio)
 #        print ( self.bass_value_chaser, self.treble_value_chaser)
         self._bounds_check()
         return is_hit, local_maxima

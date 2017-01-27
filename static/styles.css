@@ -230,8 +230,19 @@ p {
   color: #fff;
 }
 
+ul {
+    margin: 0 auto;
+    text-align: center;
+}
+
 li {
+    display: inline-block;
+    vertical-align: top;
+    padding: 10px 2px 10px 2px;
+}
+
+/*li {
     display:inline;
     padding: 10px 5px 10px 0px;
-}
+}*/
 

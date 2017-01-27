@@ -1,4 +1,5 @@
 var base_url = 'http://192.168.2.13:5001'
+base_url = 'http://10.132.2.77:5001'
 
 var fader_card_html = "<div class=\"demo-charts mdl-color--white mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-grid\">\n" +
 "<div style=\"padding:10px 0px 0px 26px; width:100%;color:rgba(0, 0, 0, 0.54)\">\n" + 
@@ -36,19 +37,25 @@ $(document).ready(function(){
         {}, toggleFade);
     });
 
+
+
     
 });
 
-function hueChanged(value) {
+function hueChanged(value, max) {
     console.log("I hate front end " + value);
+    $.post(base_url + '/api/setHue',
+        {hue:value/max});
 }
 
-function satChanged(value) {
-    console.log("I hate front end " + value);
+function satChanged(value, max) {
+    $.post(base_url + '/api/setSat',
+        {sat:value/max});
 }
 
-function brightChanged(value) {
-    console.log("I hate front end " + value);
+function brightChanged(value, max) {
+    $.post(base_url + '/api/setBri',
+        {bri:value/max});
 }
 
 function toggleLights(data, status) {
