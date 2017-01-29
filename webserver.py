@@ -51,6 +51,20 @@ def set_bri():
     light_visualizer.set_brightness(float(data['bri']))
     return "1"
 
+@app.route('/api/setSpectrum', methods=['POST'])
+def set_spec():  
+    data = request.form.to_dict()
+    if data['spectrum'] == 'FULL':
+        light_visualizer.subspectrum = 0
+    elif data['spectrum'] == 'REDS':
+        light_visualizer.subspectrum = 1
+    elif data['spectrum'] == 'GREENS':
+        light_visualizer.subspectrum = 2
+    elif data['spectrum'] == 'BLUES':
+        light_visualizer.subspectrum = 3
+    print(light_visualizer.subspectrum)
+    return "1"
+
 @app.route('/api/state', methods=['GET'])
 def get_state():
     try:

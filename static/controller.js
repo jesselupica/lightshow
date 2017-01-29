@@ -1,18 +1,5 @@
 var base_url = 'http://192.168.2.13:5001'
-base_url = 'http://10.132.5.33:5001'
-
-var fader_card_html = "<div class=\"demo-charts mdl-color--white mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-grid\">\n" +
-"<div style=\"padding:10px 0px 0px 26px; width:100%;color:rgba(0, 0, 0, 0.54)\">\n" + 
-                "<strong>Hue</strong>\n" +
-              "</div>\n" + 
-              "<p style=\"width:100%\">\n" + 
-                "<input class=\"mdl-slider mdl-js-slider\" type=\"range\" id=\"s1\" min=\"0\" max=\"100\" value=\"4\" step=\"1\">\n" +
-              "</p>\n" + 
-              "</div>\n"
-
-var fade_card_active = false
-
-
+base_url = 'http://localhost:5001'
 
 
 $(document).ready(function(){
@@ -35,6 +22,12 @@ $(document).ready(function(){
         
         $.post(base_url + '/api/toggleVisMusic',
         {}, toggleFade);
+    });
+
+    $(".spectrum-button").click(function(){
+        
+        $.post(base_url + '/api/setSpectrum',
+        {spectrum:$(this).attr('data-spec')}, toggleFade);
     });
     
 });
@@ -62,6 +55,7 @@ function toggleLights(data, status) {
         $("#offLights").text("Off");
     }
 }
+
 
 function toggleFade(data, status) {
     if(!fade_card_active) { 
