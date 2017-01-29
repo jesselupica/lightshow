@@ -21,13 +21,19 @@ $(document).ready(function(){
     $("#toggleVisMusic").click(function(){
         
         $.post(base_url + '/api/toggleVisMusic',
-        {}, toggleFade);
+        {});
     });
 
     $(".spectrum-button").click(function(){
         
         $.post(base_url + '/api/setSpectrum',
-        {spectrum:$(this).attr('data-spec')}, toggleFade);
+        {spectrum:$(this).attr('data-spec')});
+    });
+
+    $(".static-color-button").click(function(){
+        
+        $.post(base_url + '/api/setStaticColor',
+        {color:$(this).attr('id')});
     });
     
 });
@@ -54,14 +60,4 @@ function toggleLights(data, status) {
     } else {
         $("#offLights").text("Off");
     }
-}
-
-
-function toggleFade(data, status) {
-    if(!fade_card_active) { 
-            document.getElementById('faderCard').innerHTML = fader_card_html;
-        } else {
-            document.getElementById('faderCard').innerHTML = '';
-
-        }
 }

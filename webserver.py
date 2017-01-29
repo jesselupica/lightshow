@@ -65,6 +65,12 @@ def set_spec():
     print(light_visualizer.subspectrum)
     return "1"
 
+@app.route('/api/setStaticColor', methods=['POST'])
+def set_spec():  
+    data = request.form.to_dict()
+    light_visualizer.set_color(data['color'].upper()) 
+    return "1"
+
 @app.route('/api/state', methods=['GET'])
 def get_state():
     try:

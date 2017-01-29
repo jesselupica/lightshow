@@ -8,7 +8,7 @@ State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'a
 
 class HSVVisualizer(Visualizer):
 
-    COLOR_TABLE = {'BLUE': float(2)/3, 'RED': 1, 'GREEN': float(1)/3}
+    COLOR_TABLE = {'BLUE': float(2)/3, 'RED': 1, 'GREEN': float(1)/3, 'PURPLE': 282.0/360, 'PINK':340.0/360, 'TURQUOISE':199.0/360, 'ORANGE':14.0/360}
     LIGHT_MODES = ['VISUALIZE_MUSIC', 'STATIC_COLOR', 'FADE', 'ASLEEP', 'OFF']
 
     HISTORY_SIZE = 50
@@ -98,9 +98,16 @@ class HSVVisualizer(Visualizer):
             self.value = 0
             return
 
+        old_sat = self.saturation
+        old_val = self.value
+
         self.saturation = 1
         self.value = 1
-        self.hue = HSVVisualizer.COLOR_TABLE[color]
+        try:
+            self.hue = HSVVisualizer.COLOR_TABLE[color]
+        except: 
+            self.saturation = old_sat
+            self.value = old_val  
         self._bounds_check()
 
     def update_bass_treble_ratio(self, increase):
