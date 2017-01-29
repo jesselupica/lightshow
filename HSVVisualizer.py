@@ -40,9 +40,15 @@ class HSVVisualizer(Visualizer):
         self.fade_speed = 0.01
         self.is_off = False
         self.is_asleep = False
+        # 0: no subspectrum islated, 1: red isolated, 2: green isolated, 3: blue isolated
+        self.subspectrum = 0
         
     def tuple(self):
-        rgb = tuple( x * Visualizer.RGB_INTENSITY_MAX for x in colorsys.hsv_to_rgb(self.hue, self.saturation, self.value))
+        if self.subspectrum != 0:
+            filtered_hue = self._isolate_subspectrum(self.hue)
+        else:
+            filtered_hue = self.hue
+        rgb = tuple( x * Visualizer.RGB_INTENSITY_MAX for x in colorsys.hsv_to_rgb(filtered_hue, self.saturation, self.value))
         return rgb
 
     def get_state(self):
@@ -134,6 +140,16 @@ class HSVVisualizer(Visualizer):
         # Mode is fade
         elif self.mode == HSVVisualizer.LIGHT_MODES[2]:
             self._update_fade()
+
+    def _isolate_subspectrum(self, hue):
+        filter_bound_1 = (self.subspectrum * 1.0/3) % 1
+        filter_bound_2 = (filter_bound_1 + 1.0/3) 
+
+        if hue > filter_bound_1 and hue < filter_bound_2:
+            diff = hue - filter_bound_1
+            hue = filter_bound_1 - 2 * diff
+        return hue % 1
+
 
     def _update_fade(self):
         self.hue += self.fade_speed
