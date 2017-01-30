@@ -34,12 +34,15 @@ class HSVVisualizer(Visualizer):
 
         self.visualize_music = True
         self.static_color = 'BLUE'
+
+        self.should_sleep = False
         
     def tuple(self):
         rgb = tuple( x * Visualizer.RGB_INTENSITY_MAX for x in colorsys.hsv_to_rgb(self.hue, self.saturation, self.value))
         return rgb
 
     def set_color(self, color):
+        self.static_color = color
         if color == 'BLACK':
             self.value = 0
             return
@@ -139,7 +142,14 @@ class HSVVisualizer(Visualizer):
         self.treble_value_min = min(self.treble_value_min, self.treble_value_chaser)
         self.treble_value_max -= treble_pull_amount
         self.treble_value_min += treble_pull_amount
-    
+
+        if self.treble_value_max < 5 or self.bass_value_max < 5:
+            self.should_sleep = True
+            self.set_color('BLACK')
+        elif self.should_sleep:
+            self.should_sleep = False
+        #print (self.treble_value_max, self.bass_value_max)
+        
     def _update_colors(self, freq_amps):
         hue_avgamount = 40
         hue_scale = 0.035
@@ -181,10 +191,11 @@ class HSVVisualizer(Visualizer):
         self.bass_value_chaser += bass_v_chaser_diff
         self.treble_value_chaser += treble_v_chaser_diff
         self._update_value_min_and_max(bass_value_pull, treble_value_pull)
-        bass_val = (self.bass_value_chaser - self.bass_value_min)/ (self.bass_value_max - self.bass_value_min)
-        treble_val = (self.treble_value_chaser - self.treble_value_min)/ (self.treble_value_max - self.treble_value_min)
-        self.value = bass_val * self.bass_treble_ratio + treble_val * (1 - self.bass_treble_ratio)
-#        print ( self.bass_value_chaser, self.treble_value_chaser)
+        if not self.should_sleep:
+            bass_val = (self.bass_value_chaser - self.bass_value_min)/ (self.bass_value_max - self.bass_value_min)
+            treble_val = (self.treble_value_chaser - self.treble_value_min)/ (self.treble_value_max - self.treble_value_min)
+            self.value = bass_val * self.bass_treble_ratio + treble_val * (1 - self.bass_treble_ratio)
+            #print ( self.bass_value_chaser, self.treble_value_chaser)
         self._bounds_check()
         return is_hit, local_maxima
     
