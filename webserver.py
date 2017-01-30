@@ -1,9 +1,8 @@
 import json
-from HSVVisualizer import HSVVisualizer
+from globalvars import light_visualizer
 from flask import Flask, request
 
 app = Flask(__name__)
-light_visualizer = HSVVisualizer(255, 255, 255)
 
 @app.route("/")
 def hello():
@@ -36,6 +35,7 @@ def toggle_music_vis():
 @app.route('/api/setHue', methods=['POST'])
 def set_hue():  
     data = request.form.to_dict()
+    print(float(data['hue']))
     light_visualizer.set_hue(float(data['hue']))
     return "1"
 
@@ -66,7 +66,7 @@ def set_spec():
     return "1"
 
 @app.route('/api/setStaticColor', methods=['POST'])
-def set_spec():  
+def set_static_color():  
     data = request.form.to_dict()
     light_visualizer.set_color(data['color'].upper()) 
     return "1"
@@ -81,7 +81,6 @@ def get_state():
 
 def run_server(visualizer):
     app.run(host='0.0.0.0', port=5001)
-    light_visualizer = visualizer
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001)

@@ -9,7 +9,7 @@ State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'a
 class HSVVisualizer(Visualizer):
 
     COLOR_TABLE = {'BLUE': float(2)/3, 'RED': 1, 'GREEN': float(1)/3, 'PURPLE': 282.0/360, 'PINK':340.0/360, 'TURQUOISE':199.0/360, 'ORANGE':14.0/360}
-    LIGHT_MODES = ['VISUALIZE_MUSIC', 'STATIC_COLOR', 'FADE', 'ASLEEP', 'OFF']
+    LIGHT_MODES = ['VISUALIZE_MUSIC', 'STATIC_COLOR', 'FADE', 'ASLEEP', 'OFF', 'CUSTOM_STATIC_COLOR']
 
     HISTORY_SIZE = 50
     HISTORY_SAMPLE = 10
@@ -37,7 +37,7 @@ class HSVVisualizer(Visualizer):
         self.mode = HSVVisualizer.LIGHT_MODES[0]
         self.visualize_music = True
         self.static_color = 'BLUE'
-        self.fade_speed = 0.01
+        self.fade_speed = 0.001
         self.is_off = False
         self.is_asleep = False
         # 0: no subspectrum islated, 1: red isolated, 2: green isolated, 3: blue isolated
@@ -76,7 +76,7 @@ class HSVVisualizer(Visualizer):
 
     def set_hue(self, hue):
         self.visualize_music = False
-        self.mode = HSVVisualizer.LIGHT_MODES[1]
+        self.mode = HSVVisualizer.LIGHT_MODES[5]
         self.hue = hue
         self._bounds_check()
 
@@ -86,7 +86,7 @@ class HSVVisualizer(Visualizer):
 
     def set_brightness(self, brightness):
         self.visualize_music = False
-        self.mode = HSVVisualizer.LIGHT_MODES[1]
+        self.mode = HSVVisualizer.LIGHT_MODES[5]
         self.value = brightness
         self._bounds_check()
 
@@ -118,7 +118,6 @@ class HSVVisualizer(Visualizer):
             self.bass_treble_ratio -= incr
         self.bass_treble_ratio = min(1, self.bass_treble_ratio)
         self.bass_treble_ratio = max(0, self.bass_treble_ratio)
-        print(self.bass_treble_ratio)
         
     def toggle_music_visualization(self):
         self.visualize_music = not self.visualize_music
@@ -149,12 +148,13 @@ class HSVVisualizer(Visualizer):
             self._update_fade()
 
     def _isolate_subspectrum(self, hue):
-        filter_bound_1 = (self.subspectrum * 1.0/3) % 1
-        filter_bound_2 = (filter_bound_1 + 1.0/3) 
+        ratio = 0.5
+        filter_bound_1 = (self.subspectrum * 1.0/6) % 1
+        filter_bound_2 = (filter_bound_1 + 2.0/3) 
 
         if hue > filter_bound_1 and hue < filter_bound_2:
             diff = hue - filter_bound_1
-            hue = filter_bound_1 - 2 * diff
+            hue = filter_bound_1 - 0.5 * diff
         return hue % 1
 
 

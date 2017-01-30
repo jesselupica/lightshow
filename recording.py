@@ -33,7 +33,9 @@ class Recording:
                                  input=True,
                                 frames_per_buffer=Recording.CHUNK_SIZE)
             if playback:
-                self.r_stream = self.stream 
+                self.r_stream = inp.open(format=pyaudio.paInt16, channels=2, rate=Recording.RATE,
+                                 output=True,
+                                frames_per_buffer=Recording.CHUNK_SIZE) 
         self.is_over = False
         self.playback = playback
         self.file_name = file_name
@@ -50,10 +52,11 @@ class Recording:
                     sound_data = array('h', self.stream.read(Recording.CHUNK_SIZE))
                     if byteorder == 'big':
                         sound_data.byteswap()
-            #if self.playback: 
-            #    self.r_stream.write(sound_data.tobytes())
+            if self.playback: 
+                self.r_stream.write(sound_data.tostring())
             return sound_data
-        except:
+        except Exception as e:
+            print e
             self.is_over = True
             return None
 
