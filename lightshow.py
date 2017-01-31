@@ -9,8 +9,10 @@ import webserver
 #from RGBVisualizer import RGBVisualizer
 from HSVVisualizer import HSVVisualizer
 from recording import Recording
+from globalvars import light_visualizer
 from subprocess import call
 from time import sleep 
+
 
 
 # this runs on a pi, so make sure you update the name of your pi to the correct name
@@ -35,6 +37,7 @@ pi = None
 screen = None
 
 uname = os.uname()
+
 if uname[1] == pi_name and uname[0] == 'Linux':
     pi = light_source.pi()
     print(pi)
@@ -66,9 +69,14 @@ def visualize(light_visualizer, file_name=None):
             if not sound_data:
                 # print("no sound data")
                 continue
-            if light_visualizer.should_sleep:
-                sleep(0.5)
-            
+
+            if light_visualizer.is_asleep:
+                sleep(1)
+                print "im asleep"
+            if light_visualizer.is_off:
+                sleep(10)
+                print "im off"
+
             light_visualizer.visualize(sound_data, rate)
             
             update_colors(*light_visualizer.tuple())
@@ -114,7 +122,6 @@ def control_visualizer_settings(light_visualizer):
     update_colors(*light_visualizer.tuple())
     os._exit(0)
 
-        
 if __name__ == '__main__':
     print("Start recording...")
     print("Press 'C' to turn lights off")
@@ -122,15 +129,16 @@ if __name__ == '__main__':
     print("Press the following buttons to change the lights to that color")
     print("1: RED, 2: BLUE, 3: GREEN, 4: PURPLE, 5: AQUA")
 
-    light_visualizer = HSVVisualizer(255, 255, 255)
 
     t1 = threading.Thread(target=control_visualizer_settings, args=(light_visualizer,))
     t1.daemon = True
     t1.start()
 
-    t2 = threading.Thread(target=webserver.start_server)
+    t2 = threading.Thread(target=webserver.run_server)
     t2.daemon = True
     t2.start()
+
+    print webserver.get_state()
     
     if len(sys.argv) >= 2:
         visualize(light_visualizer, file_name=sys.argv[1])
