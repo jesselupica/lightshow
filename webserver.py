@@ -39,6 +39,7 @@ def toggle_music_vis():
 @app.route('/api/setHue', methods=['POST'])
 def set_hue():
     data = request.form.to_dict()
+    print(float(data['hue']))
     light_visualizer.set_hue(float(data['hue']))
     return "1"
 
@@ -69,7 +70,11 @@ def set_spec():
     return "1"
 
 @app.route('/api/setStaticColor', methods=['POST'])
+<<<<<<< HEAD
 def set_static_color():
+=======
+def set_static_color():  
+>>>>>>> 2089d0b76db514eb0243db85f5273a860b5abce9
     data = request.form.to_dict()
     light_visualizer.set_color(data['color'].upper()) 
     return "1"
@@ -82,7 +87,6 @@ def get_state():
         print "it didnt work"
         print e
 
-    
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001)
     print "testing main"

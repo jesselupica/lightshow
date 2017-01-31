@@ -8,6 +8,7 @@ import threading, thread
 import webserver
 #from RGBVisualizer import RGBVisualizer
 from HSVVisualizer import HSVVisualizer
+from globalvars import light_visualizer
 from recording import Recording
 from globalvars import light_visualizer
 from subprocess import call
@@ -67,7 +68,7 @@ def visualize(light_visualizer, file_name=None):
         while True: 
             sound_data = music.get_chunk()
             if not sound_data:
-                # print("no sound data")
+                print("no sound data")
                 continue
 
             if light_visualizer.is_asleep:
@@ -81,9 +82,10 @@ def visualize(light_visualizer, file_name=None):
             
             update_colors(*light_visualizer.tuple())
     except KeyboardInterrupt:
-        pi.set_PWM_dutycycle(RED_PIN, 0)
-        pi.set_PWM_dutycycle(GREEN_PIN, 0)
-        pi.set_PWM_dutycycle(BLUE_PIN, 0)
+        if uname[1] == pi_name and uname[0] == 'Linux':
+            pi.set_PWM_dutycycle(RED_PIN, 0)
+            pi.set_PWM_dutycycle(GREEN_PIN, 0)
+            pi.set_PWM_dutycycle(BLUE_PIN, 0)
     except Exception as e:
         print(e)
         print(traceback.format_exc())
@@ -128,7 +130,6 @@ if __name__ == '__main__':
     print("Press SPACE to toggle music visualization")
     print("Press the following buttons to change the lights to that color")
     print("1: RED, 2: BLUE, 3: GREEN, 4: PURPLE, 5: AQUA")
-
 
     t1 = threading.Thread(target=control_visualizer_settings, args=(light_visualizer,))
     t1.daemon = True

@@ -11,28 +11,26 @@ $(document).ready(function(){
 
     $("#toggleFade").click(function(){
     	
-    	fade_card_active = !fade_card_active
-
         $.post(base_url + '/api/toggleFade',
-        { default:true, rate:10 }, toggleLights);
+        {}, updateSliders);
     });
 
     $("#toggleVisMusic").click(function(){
         
         $.post(base_url + '/api/toggleVisMusic',
-        {});
+        {}, updateSliders);
     });
 
     $(".spectrum-button").click(function(){
         
         $.post(base_url + '/api/setSpectrum',
-        {spectrum:$(this).attr('data-spec')});
+        {spectrum:$(this).attr('data-spec')}, updateSliders);
     });
 
     $(".static-color-button").click(function(){
-        
+        console.log("stuff")
         $.post(base_url + '/api/setStaticColor',
-        {color:$(this).attr('id')});
+        {color:$(this).attr('id')}, updateSliders);
     });
     
 });
@@ -51,6 +49,23 @@ function satChanged(value, max) {
 function brightChanged(value, max) {
     $.post(base_url + '/api/setBri',
         {bri:value/max});
+}
+
+function updateSliders() {
+    console.log('is this getting called');
+    $.getJSON( base_url + '/api/state', {} )
+      .done(function( json ) {
+        console.log( "JSON Data: " + json.hue);
+        $("#hueSlider").get(0).MaterialSlider.change(json.hue * $("#hueSlider").attr('max'));
+        $("#satSlider").get(0).MaterialSlider.change(json.saturation * $("#satSlider").attr('max'));
+        $("#brightSlider").get(0).MaterialSlider.change(json.value * $("#brightSlider").attr('max'));
+
+      })
+      .fail(function( jqxhr, textStatus, error ) {
+        var err = textStatus + ", " + error;
+        console.log( "Request Failed: " + err );
+    });
+
 }
 
 function toggleLights(data, status) {
