@@ -70,11 +70,7 @@ def set_spec():
     return "1"
 
 @app.route('/api/setStaticColor', methods=['POST'])
-<<<<<<< HEAD
-def set_static_color():
-=======
 def set_static_color():  
->>>>>>> 2089d0b76db514eb0243db85f5273a860b5abce9
     data = request.form.to_dict()
     light_visualizer.set_color(data['color'].upper()) 
     return "1"
