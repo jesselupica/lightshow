@@ -14,24 +14,13 @@ from globalvars import light_visualizer
 from subprocess import call
 from time import sleep 
 
-
-
 # this runs on a pi, so make sure you update the name of your pi to the correct name
 pi_name = 'raspberrypi'
 
-light_mod_name = None
 uname = os.uname()
 if uname[1] == pi_name and uname[0] == 'Linux':
     light_mod_name = 'pigpio'
-else: 
-    light_mod_name = 'pygame'
-
 light_source = __import__(light_mod_name)
-
-# The Pins. Use Broadcom numbers.
-RED_PIN   = 17
-GREEN_PIN = 22
-BLUE_PIN  = 24
 
 # global variables
 pi = None
@@ -42,12 +31,20 @@ uname = os.uname()
 if uname[1] == pi_name and uname[0] == 'Linux':
     pi = light_source.pi()
     print(pi)
+# TODO: Change this to analyzer
 else: 
+    light_source.init()
     width, height = (300, 200)
     black_color = 0,0,0
     screen = light_source.display.set_mode((width, height))
     screen.fill(black_color)
     light_source.display.flip()
+
+
+# The Pins. Use Broadcom numbers.
+RED_PIN   = 17
+GREEN_PIN = 22
+BLUE_PIN  = 24
 
 def update_colors(red, green, blue):
     uname = os.uname()
@@ -57,7 +54,7 @@ def update_colors(red, green, blue):
         pi.set_PWM_dutycycle(BLUE_PIN, int(blue))
     else: 
         screen.fill( (red, green, blue) )
-        light_source.display.flip()    
+        light_source.display.flip()  
 
 def visualize(light_visualizer, file_name=None):
     try:
@@ -81,6 +78,7 @@ def visualize(light_visualizer, file_name=None):
             light_visualizer.visualize(sound_data, rate)
             
             update_colors(*light_visualizer.tuple())
+
     except KeyboardInterrupt:
         if uname[1] == pi_name and uname[0] == 'Linux':
             pi.set_PWM_dutycycle(RED_PIN, 0)

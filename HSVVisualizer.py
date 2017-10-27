@@ -43,6 +43,8 @@ class HSVVisualizer(Visualizer):
         # 0: no subspectrum islated, 1: red isolated, 2: green isolated, 3: blue isolated
         self.subspectrum = 0
 
+        self.amps = []
+
         
     def tuple(self):
         if self.subspectrum != 0:
@@ -135,13 +137,13 @@ class HSVVisualizer(Visualizer):
                 # Taken from wikipedia for calculating frequency of each note on 88 key piano
                 freqs.append(2**((i-49)/12) * 440)
             
-            amps = self._get_amplitude_at_frequency(freqs, raw_data, rate)
-            is_hit, local_maxima = self._update_colors(amps)
+            self.amps = self._get_amplitude_at_frequency(freqs, raw_data, rate)
+            is_hit, local_maxima = self._update_colors(self.amps)
 
-            index, value = max(enumerate(amps), key=lambda x: x[1])
-            avg_amp = sum(amps)/len(amps)
+            index, value = max(enumerate(self.amps), key=lambda x: x[1])
+            avg_amp = sum(self.amps)/len(self.amps)
         
-            self.state_deque.append(State(amps, is_hit, local_maxima, index, avg_amp))
+            self.state_deque.append(State(self.amps, is_hit, local_maxima, index, avg_amp))
         # Mode is static color
         elif self.mode == HSVVisualizer.LIGHT_MODES[1]:
             self.set_color(self.static_color)

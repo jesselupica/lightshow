@@ -1,4 +1,9 @@
 sudo mv boot_lightshow.sh /etc/init.d
+sudo chmod +x /etc/init.d/boot_lightshow.sh
+sudo chown root:root /etc/init.d/boot_lightshow.sh
+
+sudo update-rc.d boot_lightshow.sh defaults
+sudo update-rc.d boot_lightshow.sh enable
 
 # Install pyaudio to read audio inputs from Mac devices
 sudo git clone http://people.csail.mit.edu/hubert/git/pyaudio.git
