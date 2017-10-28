@@ -11,17 +11,17 @@ from HSVVisualizer import HSVVisualizer
 from globalvars import light_visualizer
 from recording import Recording
 from globalvars import light_visualizer
+from analyzer import Analyzer
 from subprocess import call
 from time import sleep 
 
 # this runs on a pi, so make sure you update the name of your pi to the correct name
 pi_name = 'raspberrypi'
 
-uname = os.uname()
-if uname[1] == pi_name and uname[0] == 'Linux':
-    light_mod_name = 'pigpio'
-light_source = __import__(light_mod_name)
-
+try:
+    import pigpio
+except:
+    pass
 # global variables
 pi = None
 screen = None
@@ -29,17 +29,10 @@ screen = None
 uname = os.uname()
 
 if uname[1] == pi_name and uname[0] == 'Linux':
-    pi = light_source.pi()
+    pi = pigpio.pi()
     print(pi)
-# TODO: Change this to analyzer
-else: 
-    light_source.init()
-    width, height = (300, 200)
-    black_color = 0,0,0
-    screen = light_source.display.set_mode((width, height))
-    screen.fill(black_color)
-    light_source.display.flip()
 
+analyzer = Analyzer()
 
 # The Pins. Use Broadcom numbers.
 RED_PIN   = 17
@@ -51,10 +44,7 @@ def update_colors(red, green, blue):
     if uname[1] == pi_name and uname[0] == 'Linux':
         pi.set_PWM_dutycycle(RED_PIN, int(red))
         pi.set_PWM_dutycycle(GREEN_PIN, int(green))
-        pi.set_PWM_dutycycle(BLUE_PIN, int(blue))
-    else: 
-        screen.fill( (red, green, blue) )
-        light_source.display.flip()  
+        pi.set_PWM_dutycycle(BLUE_PIN, int(blue)) 
 
 def visualize(light_visualizer, file_name=None):
     try:
@@ -76,7 +66,7 @@ def visualize(light_visualizer, file_name=None):
                 print "im off"
 
             light_visualizer.visualize(sound_data, rate)
-            
+            analyzer.update(light_visualizer)
             update_colors(*light_visualizer.tuple())
 
     except KeyboardInterrupt:

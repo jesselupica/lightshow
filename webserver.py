@@ -1,8 +1,11 @@
 import json
 from globalvars import light_visualizer
 from flask import Flask, request
+from flask_socketio import SocketIO, emit, send
 
 app = Flask(__name__)
+socketio = SocketIO(app)
+
 
 def run_server():
     app.run(host='0.0.0.0', port=5001)
@@ -10,6 +13,15 @@ def run_server():
 @app.route("/")
 def hello():
     return "Hello World!"
+
+@socketio.on('connect')
+def test_connect():
+    send('my response', json.dumps(light_visualizer.amps))
+    return stat
+
+@socketio.on('message')
+def test_message():
+    emit('my response', json.dumps(light_visualizer.amps))
 
 @app.route('/api/toggleLights', methods=['POST'])
 def toggle_lights():
@@ -84,5 +96,5 @@ def get_state():
         print e
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5001)
+    socketio.run(app)
     print "testing main"
