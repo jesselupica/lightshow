@@ -1,4 +1,4 @@
-
+#!/usr/bin/env bash
 
 sudo pigpiod -a1
 pigs p 17 0
