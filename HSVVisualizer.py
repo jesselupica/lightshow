@@ -20,18 +20,13 @@ class HSVVisualizer(Visualizer):
         self.saturation = 1
         self.value = 1
         self.state_deque = deque([], maxlen=HSVVisualizer.HISTORY_SIZE)
+        
         self.hue_chaser = 0
         
-        self.bass_value_chaser = 0
-        self.treble_value_chaser = 0
+        self.value_chaser = 0.5
         
-        self.bass_value_max = 0.5
-        self.bass_value_min = 0.5
-
-        self.treble_value_max = 0.5
-        self.treble_value_min = 0.5
-
-        self.bass_treble_ratio = 0.6
+        self.value_max = 0.5
+        self.value_min = 0.5
 
         # initialize to music visualization 
         self.mode = HSVVisualizer.LIGHT_MODES[0]
@@ -216,18 +211,13 @@ class HSVVisualizer(Visualizer):
                 summed_amps[i] += x
         return [x/len(sd) for x in summed_amps]
 
-    def _update_value_min_and_max(self, bass_pull_amount, treble_pull_amount):
-        self.bass_value_max = max(self.bass_value_max, self.bass_value_chaser)
-        self.bass_value_min = min(self.bass_value_min, self.bass_value_chaser)
-        self.bass_value_max -= bass_pull_amount
-        self.bass_value_min += bass_pull_amount
+    def _update_value_min_and_max(self, pull_amount):
+        self.value_max = max(self.value_max, self.value_chaser)
+        self.value_min = min(self.value_min, self.value_chaser)
+        self.value_max -= pull_amount
+        self.value_min += pull_amount
 
-        self.treble_value_max = max(self.treble_value_max, self.treble_value_chaser)
-        self.treble_value_min = min(self.treble_value_min, self.treble_value_chaser)
-        self.treble_value_max -= treble_pull_amount
-        self.treble_value_min += treble_pull_amount
-
-        if self.bass_value_max < 5 or self.treble_value_max < 5:
+        if self.value_max < 5:
             self.is_asleep = True
             self.visualize_music = False
         else: 
@@ -238,25 +228,21 @@ class HSVVisualizer(Visualizer):
         hue_avgamount = 40
         hue_scale = 0.035
 
-        bass_value_avgamount = 10
-        bass_value_pull = 0.1
-
-        treble_value_avgamount = 10
-        treble_value_pull = 0.1
+        value_avgamount = 10
+        value_pull = 0.05 #0.4 is a good number
 
         local_maxima = self._find_local_maxes(freq_amps)
 
         is_hit = self._is_hit(freq_amps, local_maxima, 6)
         if is_hit:
             shift = (0.2 *(1/ (1+ self._num_hits_in_hist()))) 
-            self.bass_value_chaser += shift
-            self.treble_value_chaser += shift
+            self.value_chaser += shift
+            self.value_chaser += shift
             self.hue_chaser += shift
         
         if len(self.state_deque) > 5:
             avg_amps = self._avg_last_n_states(5, len(freq_amps))
             avg_max = max(enumerate(avg_amps), key=lambda x: x[1])[0]
-        
             # Code for hue pusher taken from Sitar Harel and his LEDControl program
             h_chaser_diff = (avg_max - self.hue_chaser) / hue_avgamount
 
@@ -264,23 +250,17 @@ class HSVVisualizer(Visualizer):
             if self.visualize_music:
                 self.hue = self.hue + h_chaser_diff * hue_scale
 
-        bass = freq_amps[:HSVVisualizer.TREBLE_BASS_DIVIDE]
-        treble = freq_amps[HSVVisualizer.TREBLE_BASS_DIVIDE:]
+        mean_amp = sum(freq_amps)/len(freq_amps)
 
-        bass_mean_amp = sum(bass)/len(bass)
-        treble_mean_amp = sum(treble)/len(treble)
 
-        bass_v_chaser_diff = (bass_mean_amp - self.bass_value_chaser) / bass_value_avgamount
-        treble_v_chaser_diff = (treble_mean_amp - self.treble_value_chaser) / treble_value_avgamount
+        value_chaser_diff = (mean_amp - self.value_chaser) / value_avgamount
 
-        self.bass_value_chaser += bass_v_chaser_diff
-        self.treble_value_chaser += treble_v_chaser_diff
-        self._update_value_min_and_max(bass_value_pull, treble_value_pull)
-        bass_val = (self.bass_value_chaser - self.bass_value_min)/ (self.bass_value_max - self.bass_value_min)
-        treble_val = (self.treble_value_chaser - self.treble_value_min)/ (self.treble_value_max - self.treble_value_min)
+        self.value_chaser += value_chaser_diff
+        self._update_value_min_and_max(value_pull)
+        val = (self.value_chaser - self.value_min)/ (self.value_max - self.value_min)
         if self.visualize_music:
-            self.value = bass_val * self.bass_treble_ratio + treble_val * (1 - self.bass_treble_ratio)
-#        print ( self.bass_value_chaser, self.treble_value_chaser)
+            self.value =  val
+        print ( self.value, is_hit) 
         self._bounds_check()
         return is_hit, local_maxima
     
