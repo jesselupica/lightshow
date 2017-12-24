@@ -1,0 +1,22 @@
+{
+  "name": "lightshow-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "express": "^4.15.2",
+    "import-all-from": "^1.0.1",
+    "material-ui": "^0.20.0",
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0",
+    "react-flexbox-grid": "^2.0.0",
+    "react-scripts": "1.0.17",
+    "roboto": "^0.8.2",
+    "socket.io": "^2.0.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  }
+}
