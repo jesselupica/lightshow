@@ -4,6 +4,10 @@ import select
 import socket
 import sys
 from deviceModel import Device
+from flask import Flask, request
+from threading import Thread
+
+app = Flask(__name__)
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -99,5 +103,20 @@ def register_device(socket_conn, client_message):
     conn_to_device[socket_conn] = dev
     save_registered_devices()
 
+@app.route('/device/<device_id>')
+def show_user_profile(device_id):
+    # may have to change with auth
+    if device_id in device_index:
+        device_index[device_id].messages.append(request.form["command"])
+    return "Message relayed to " + str(device_id) + "!", 200
+
+@app.route("/devices")
+def get_devices():
+    return json.dumps([d.to_json() for d in registered_devices])
+
 if __name__ == "__main__":
+    t = Thread(target=app.run, kwargs={"host":"0.0.0.0", "port" : 5002})
+    t.daemon = True
+    t.start()
     run_server()
+    

@@ -16,30 +16,7 @@ import MoreVertIcon from 'material-ui/svg-icons/navigation/more-vert';
 import {grey400} from 'material-ui/styles/colors';
 import {blue300, blue900, red300, red900, green300, green900, purple300, purple900, pink300, pink900, teal300, teal900, orange300, orange900} from 'material-ui/styles/colors';
 
-var websocket = new WebSocket("ws://localhost:5001");
-
-websocket.onopen = function(evt) { 
-    console.log("we have opened");
-}; //on open event
-websocket.onmessage = function(str) {
-  console.log("Someone sent: ", str);
-};
-
-
-function sendAMessage() {
-    // Tell the server this is client 1 (swap for client 2 of course)
-    websocket.send(JSON.stringify({
-      id: "client1"
-    }));
-    // Tell the server we want to send something to the other client
-    websocket.send(JSON.stringify({
-      to: "client2",
-      data: "foo"
-    }));
-}
-
-
-
+var webserver = "http://localhost:5002/"
 
 const styles = {
   headline: {
