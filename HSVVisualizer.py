@@ -7,7 +7,6 @@ import random
 State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'avg_amp'])
 
 class HSVVisualizer(Visualizer):
-
     COLOR_TABLE = {'BLUE': float(2)/3, 'RED': 1, 'GREEN': float(1)/3, 'PURPLE': 282.0/360, 'PINK':340.0/360, 'TEAL':199.0/360, 'ORANGE':14.0/360}
     LIGHT_MODES = ['VISUALIZE_MUSIC', 'STATIC_COLOR', 'FADE', 'ASLEEP', 'OFF', 'CUSTOM_STATIC_COLOR']
 
