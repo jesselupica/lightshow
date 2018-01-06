@@ -1,3 +1,4 @@
+ /*eslint-env jquery*/
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
 import { Card } from 'material-ui/Card'
@@ -15,6 +16,7 @@ import IconButton from 'material-ui/IconButton';
 import MoreVertIcon from 'material-ui/svg-icons/navigation/more-vert';
 import {grey400} from 'material-ui/styles/colors';
 import {blue300, blue900, red300, red900, green300, green900, purple300, purple900, pink300, pink900, teal300, teal900, orange300, orange900} from 'material-ui/styles/colors';
+import axios from 'axios';
 
 var webserver = "http://localhost:5002/"
 
@@ -50,6 +52,10 @@ const cardsStyle = {
   maxWidth: '500px',
 }
 
+function send_command_to_device(command, device) {
+  $.get( webserver + "device/" + device , { "command": command } );
+}
+
 const cardContentStyle = {
     padding: '12px',
 }
@@ -67,7 +73,6 @@ function ColorChip(props) {
     var bg_color_pallets = {"Blue" : blue900, "Red" : red900, "Green" : green900, "Purple" : purple900, "Pink" : pink900, "Teal" : teal900, "Orange" : orange900};
     return(<Chip
           backgroundColor={fg_color_pallets[props.color]}
-          onClick={sendAMessage}
           style={styles.chip}
         >
         <Avatar size={32} color={fg_color_pallets[props.color]} backgroundColor={bg_color_pallets[props.color]}>
@@ -170,9 +175,10 @@ const LightModeTabs = () => (
 );
 
 function LightSettingsCard(props) {
+    var displayed_name = props.device.nickname != "" ? props.device.nickname : props.device.id
     return (
         <Card style={cardsStyle}>
-            <DeviceInfoHeader nickname="Jesse's Bedroom Pi" deviceType="Light Visualizer"/>
+            <DeviceInfoHeader nickname={displayed_name} deviceType="Light Visualizer"/>
             <Divider/>
             <LightModeTabs/>
             </Card>
@@ -180,6 +186,7 @@ function LightSettingsCard(props) {
 }
 
 export default class CardStream extends Component {
+
   static propTypes = {
     items: PropTypes.arrayOf(PropTypes.node).isRequired,
     editMode: PropTypes.bool,
@@ -188,11 +195,37 @@ export default class CardStream extends Component {
     moveDownItem: PropTypes.func
   }
 
+
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      devices: []
+    };
+  }
+
+  componentDidMount() {
+    var url = webserver + "devices"
+    console.log(url)
+    axios.get(url)
+      .then(res => {
+        console.log(res)
+        const devices = res.data
+        this.setState({ devices });
+      });
+  }
+
   render() {
     return (
-      <div style={cardContainerStyle}>
-          <LightSettingsCard items={this.props.items}/>
+      <div>
+        <ul>
+          {this.state.devices.map(device =>
+            <li key={device.id} style={cardContainerStyle}>
+              <LightSettingsCard device={device}/>
+            </li>
+          )}
+        </ul>
       </div>
-    )
+    );    
   }
 }
