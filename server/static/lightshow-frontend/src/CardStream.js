@@ -20,6 +20,9 @@ import axios from 'axios';
 
 var webserver = "http://localhost:5002/"
 
+axios.defaults.baseURL = webserver;
+
+
 const styles = {
   headline: {
     fontSize: 24,
@@ -52,10 +55,6 @@ const cardsStyle = {
   maxWidth: '500px',
 }
 
-function send_command_to_device(command, device) {
-  $.get( webserver + "device/" + device , { "command": command } );
-}
-
 const cardContentStyle = {
     padding: '12px',
 }
@@ -64,8 +63,8 @@ function handleRequestDelete() {
   alert('You clicked the delete button.');
 }
 
-function handleClick() {
-  alert('You clicked the Chip.');
+function handleChipClick(color) {
+  alert('You clicked the ' + color.toLowerCase() + ' chip.');
 }
 
 function ColorChip(props) {
@@ -73,6 +72,7 @@ function ColorChip(props) {
     var bg_color_pallets = {"Blue" : blue900, "Red" : red900, "Green" : green900, "Purple" : purple900, "Pink" : pink900, "Teal" : teal900, "Orange" : orange900};
     return(<Chip
           backgroundColor={fg_color_pallets[props.color]}
+          onClick={() => props.onClick(props.color)}
           style={styles.chip}
         >
         <Avatar size={32} color={fg_color_pallets[props.color]} backgroundColor={bg_color_pallets[props.color]}>
@@ -94,26 +94,20 @@ class ColorChipWrapper extends React.Component {
     return (
       <div style={styles.chipWrapper}>
         {this.props.colors.map((color, index) => 
-            <ColorChip key={index} color={color}/>)}        
+            <ColorChip key={index} color={color} onClick={this.props.onClick}/>)}        
       </div>
     );
   }
 }
 
 class ControlSlider extends Component {
-  state = {
-    sliderValue: 0.5,
-  };
 
-  handleSliderChange = (event, value) => {
-    this.setState({firstSlider: value});
-  };
 
   render() {
     return (
       <div>
         <h2 style={styles.headline}>{this.props.title} </h2>
-        <Slider value={this.state.sliderValue} onChange={this.handleSliderChange} />
+        <Slider value={this.props.sliderValue} onChange={this.props.onChange} />
       </div>
     );
   }
@@ -147,40 +141,155 @@ function DeviceInfoHeader(props) {
     </List>)
 }
 
-const LightModeTabs = () => (
-  <Tabs style={cardContentStyle}>
-    <Tab label="Visualize" >
-      <div>
-        <ControlSlider title="Brightness" />
-        <ControlSlider title="Saturation" />
-      </div>
-    </Tab>
-    <Tab label="Fade" >
-      <div>
-        <ControlSlider title="Fade Speed" />
-      </div>
-    </Tab>
-    <Tab
-      label="Static"
-      data-route="/home"
-    >
-      <div>
-        <h2 style={styles.headline}>Preset Colors</h2>
-        <ColorChipWrapper colors={["Blue", "Green", "Red", "Purple", "Pink", "Teal", "Orange"]}/>
-      </div>
-    </Tab>
-    <Tab label="Off">
-    </Tab>
-  </Tabs>
-);
+class LightModeTabs extends React.Component {
+
+
+  constructor(props) {
+    super(props);
+    const modes = {'VISUALIZE_MUSIC' : "vis", 
+                  'STATIC_COLOR' : "static", 
+                  'FADE' : "fade", 
+                  'ASLEEP' : "off", 
+                  'OFF' : "off", 
+                  'CUSTOM_STATIC_COLOR' : "static"}
+    const colors = ["Blue", "Green", "Red", "Purple", "Pink", "Teal", "Orange"]
+
+    this.state = {
+      value: modes[props.device.state.mode],
+      device: this.props.device,
+      colors: colors,
+    };
+
+  }
+
+  handleChange = (value) => {
+    this.setState({
+      value: value,
+    });
+  };
+
+  handleActive = (tab) => {
+    this.setState({
+      value: tab.props.value,
+    });
+    var mode_args = {}
+    console.log(tab.props.value)
+    if (tab.props.value  == 'vis') {
+      mode_args = {'brightness' : this.state.device.state.value, 'sat' : this.state.device.state.saturation,}
+    } else if (tab.props.value  == 'fade') {
+      mode_args = {'fade_speed' : this.state.device.state.fade_speed}
+    } else if (tab.props.value == 'static') {
+      mode_args = {'color' : this.state.colors[Math.floor(Math.random()*this.state.colors.length)]}
+    }
+
+    axios.post("device/" + this.state.device.id, {
+        command: {function: 'mode', args: [tab.props.value, mode_args]}
+      }).then( () => {
+        if (tab.props.value == 'static') {
+          axios.get("device/" + this.state.device.id).then(res => {
+            const device = res.data
+            this.setState({ device : device });
+        });
+      }
+    });
+  }
+  
+
+  handleBriChange = (event, value) => {
+    this.state.device.state.value = value
+    this.setState({
+      device: this.state.device
+    });
+    axios.post("device/" + this.state.device.id, {
+        command: {function: 'brightness', args: [this.state.device.state.value]}
+      })
+  }
+
+  handleSatChange = (event, value) => {
+    this.state.device.state.saturation = value
+    this.setState({
+      device: this.state.device
+    });
+    axios.post("device/" + this.state.device.id, {
+        command: {function: 'sat', args: [this.state.device.state.saturation]}
+      })  
+  }
+
+  handleHueChange = (event, value) => {
+    this.state.device.state.hue = value
+    this.setState({
+      device: this.state.device
+    });
+    axios.post("device/" + this.state.device.id, {
+        command: {function: 'hue', args: [this.state.device.state.hue]}
+      })  
+  }
+
+  handleSetStaticColor = (color) => {
+    axios.post("device/" + this.state.device.id, {
+        command: {function: 'static color', args: [color]}
+      }).then( () => {
+          axios.get("device/" + this.state.device.id).then(res => {
+            const device = res.data
+            this.setState({ device : device });
+        });
+      
+    });
+  }
+
+  handleFadeSpeedChange = (event, value) => {
+    this.state.device.state.fade_speed = value
+    this.setState({
+      device: this.state.device
+    });
+    axios.post("device/" + this.state.device.id, {
+        command: {function: 'fade_speed', args: [this.state.device.state.fade_speed]}
+      })  
+  }
+
+  render() {
+    return (
+      <Tabs style={cardContentStyle} value={this.state.value} onChange={this.handleChange}>
+        <Tab label="Visualize" value="vis" onActive={this.handleActive}>
+          <div>
+            <ControlSlider title="Brightness" sliderValue={this.state.device.state.value} onChange={this.handleBriChange}/>
+            <ControlSlider title="Saturation" sliderValue={this.state.device.state.saturation} onChange={this.handleSatChange}/>
+          </div>
+        </Tab>
+        <Tab label="Fade" value="fade" onActive={this.handleActive}>
+          <div>
+            <ControlSlider title="Fade Speed" sliderValue={this.state.device.state.fade_speed} onChange={this.handleFadeSpeedChange}/>
+          </div>
+        </Tab>
+        <Tab
+          label="Static"
+          data-route="/home"
+          value="static"
+          onActive={this.handleActive}
+        >
+          <div>
+            <h2 style={styles.headline}>Preset Colors</h2>
+            <ColorChipWrapper key="chips" colors={this.state.colors} onClick={this.handleSetStaticColor}/>
+            <Divider style={cardContainerStyle}/>
+            <ControlSlider title="Hue" sliderValue={this.state.device.state.hue} onChange={this.handleHueChange}/>
+            <ControlSlider title="Brightness" sliderValue={this.state.device.state.value} onChange={this.handleBriChange}/>
+            <ControlSlider title="Saturation" sliderValue={this.state.device.state.saturation} onChange={this.handleSatChange}/>
+          </div>
+        </Tab>
+        <Tab label="Off" value="off" onActive={this.handleActive}>
+        </Tab>
+      </Tabs>
+    );
+  }
+}
 
 function LightSettingsCard(props) {
-    var displayed_name = props.device.nickname != "" ? props.device.nickname : props.device.id
+    var displayed_name = props.device.nickname !== "" ? props.device.nickname : props.device.id
     return (
         <Card style={cardsStyle}>
             <DeviceInfoHeader nickname={displayed_name} deviceType="Light Visualizer"/>
             <Divider/>
-            <LightModeTabs/>
+            <LightModeTabs device={props.device}/>
             </Card>
         )
 }
@@ -206,10 +315,8 @@ export default class CardStream extends Component {
 
   componentDidMount() {
     var url = webserver + "devices"
-    console.log(url)
     axios.get(url)
       .then(res => {
-        console.log(res)
         const devices = res.data
         this.setState({ devices });
       });

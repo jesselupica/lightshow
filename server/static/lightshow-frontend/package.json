@@ -13,6 +13,7 @@
     "react-flexbox-grid": "^2.0.0",
     "react-http-request": "^1.0.3",
     "react-scripts": "1.0.17",
+    "request": "^2.83.0",
     "roboto": "^0.8.2",
     "socket.io": "^2.0.4"
   },

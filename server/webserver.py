@@ -6,8 +6,11 @@ import sys
 from deviceModel import Device
 from flask import Flask, request
 from threading import Thread
+from flask_cors import CORS
+
 
 app = Flask(__name__)
+CORS(app)
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -22,6 +25,8 @@ registered_devices = []
 device_index = {}
 
 registration_file = "registered_devices.json"
+
+## TODO: Define a get state method
     
 def load_registered_devices():
     if os.path.isfile(registration_file):
@@ -69,19 +74,25 @@ def add_input_connection(s):
 
 def handle_request(s):
     data = s.recv(1024)
-    print data
+    print data + " | "
     if data:
-        try:
-            client_message = json.loads(data)
-        except ValueError:
-            return 
-        if "registration" in client_message:
-            register_device(s, client_message)
-                
-        # may have to change with auth
-        if "device" in client_message and client_message['device'] in device_index:
-            device_id = client_message['device']
-            device_index[device_id].messages.append(client_message['command'])
+        for message in data.split('\n'):
+            try:
+                client_message = json.loads(message)
+            except ValueError as e:
+                print "value error", e, message 
+                continue 
+            if "registration" in client_message:
+                register_device(s, client_message)
+            if "state" in client_message:
+                print "we're here", client_message
+                device_id = client_message['id']
+                device_index[device_id].state = client_message['state']
+                    
+            # may have to change with auth
+            if "device" in client_message and client_message['device'] in device_index:
+                device_id = client_message['device']
+                device_index[device_id].messages.append(client_message['command'])
     else:
         # if s is a device, remove it from the list
         if s in outputs:
@@ -103,16 +114,26 @@ def register_device(socket_conn, client_message):
     conn_to_device[socket_conn] = dev
     save_registered_devices()
 
-@app.route('/device/<device_id>')
+@app.route('/device/<device_id>', methods=['POST', 'GET'])
 def show_user_profile(device_id):
     # may have to change with auth
-    if device_id in device_index:
-        device_index[device_id].messages.append(request.form["command"])
-    return "Message relayed to " + str(device_id) + "!", 200
+    if request.method == 'POST':
+        data = json.loads(request.data)
+        if device_id in device_index:
+            device_index[device_id].messages.append(data["command"])
+        return "Message relayed"
+    elif request.method == 'GET':
+        return json.dumps(device_index[device_id].to_json())
 
 @app.route("/devices")
 def get_devices():
     return json.dumps([d.to_json() for d in registered_devices])
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    print e
+
 
 if __name__ == "__main__":
     t = Thread(target=app.run, kwargs={"host":"0.0.0.0", "port" : 5002})

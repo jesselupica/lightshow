@@ -1,6 +1,7 @@
 import json
 import socket
 import uuid
+from time import sleep 
 
 SERVER_IP = "104.131.78.170"
 SERVER_PORT = "5001"
@@ -18,7 +19,9 @@ class Client(object):
                         'on/off' : self.toggle_lights,
                         'fade' : self.toggle_fade,
                         'sat' : self.set_sat,
-                        'brightness' : self.set_brightness}
+                        'brightness' : self.set_brightness,
+                        'mode' : self.set_mode,
+                        'fade_speed' : self.set_fade_speed}
         self.register_device()
 
     def register_device(self):
@@ -33,26 +36,41 @@ class Client(object):
                 f.write(json.dumps(self.registration))
 
     def run_client(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_REUSEADDR,
-            sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR))
-        sock.connect((self.server_ip, self.server_port))
-        sock.send(json.dumps(self.registration))
+        while True:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(
+                socket.SOL_SOCKET,
+                socket.SO_REUSEADDR,
+                sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR))
+            try: 
+                sock.connect((self.server_ip, self.server_port))
+            except socket.error as e:
+                # don't overwhelm the server when it goes down
+                sleep(0.1)
+            else:
+                sock.send(json.dumps(self.registration) + "\n")
+                self.send_state(sock)
 
-        while True: 
-            req_str = sock.recv(1024)
-            if not req_str:
-                break
-            req = json.loads(req_str)
-            print req
-            self.handle_req(req)
+                while True: 
+                    req_str = sock.recv(1024)
+                    if not req_str:
+                        break
+                    for r in req_str.split('\n'):
+                        try: 
+                            req = json.loads(r)
+                        except ValueError as e:
+                            continue 
+                        self.handle_req(req)
+                        self.send_state(sock)
 
     def handle_req(self, req):
-        command = req["command"]["function"]
-        args = req["command"]["args"]
-        commands[command](*args)
+        command = req["function"]
+        args = req["args"]
+        self.commands[command](*args)
+
+    def send_state(self, sock):
+        mess = {"id" : self.registration["registration"], "state" : self.vis.get_state()}
+        sock.send(json.dumps(mess) + '\n')
 
     def set_sat(self, sat):
         self.vis.set_sat(float(sat))
@@ -83,6 +101,22 @@ class Client(object):
 
     def set_brightness(self, val):
         self.vis.set_brightness(float(val))
+
+    def set_mode(self, mode, args):
+        if mode == 'off':
+            self.vis.turn_off_lights()
+        elif mode == 'vis':
+            self.vis.turn_on_music_visualization()
+            self.vis.set_brightness(args["brightness"])
+            self.vis.set_sat(args["sat"])
+        elif mode == 'fade':
+            self.vis.turn_on_fade()
+            self.vis.set_fade_speed(args["fade_speed"])
+        else:
+            self.vis.set_color(args["color"].upper())
+
+    def set_fade_speed(self, speed):
+        self.vis.set_fade_speed(float(speed))
 
 
 if __name__ == '__main__':
