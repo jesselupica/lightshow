@@ -18,7 +18,7 @@ import {grey400} from 'material-ui/styles/colors';
 import {blue300, blue900, red300, red900, green300, green900, purple300, purple900, pink300, pink900, teal300, teal900, orange300, orange900} from 'material-ui/styles/colors';
 import axios from 'axios';
 
-var webserver = "http://localhost:5002/"
+var webserver = "http://jesselupica.com/"
 
 axios.defaults.baseURL = webserver;
 

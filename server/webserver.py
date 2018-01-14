@@ -4,12 +4,12 @@ import select
 import socket
 import sys
 from deviceModel import Device
-from flask import Flask, request
+from flask import Flask, request, render_template, send_from_directory
 from threading import Thread
 from flask_cors import CORS
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
 CORS(app)
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -129,6 +129,19 @@ def show_user_profile(device_id):
 def get_devices():
     return json.dumps([d.to_json() for d in registered_devices])
 
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/static/<path:path>') # serve whatever the client requested in the static folder
+def serve_static(path):
+    return send_from_directory('lightshow-frontend/build/static', path)
+
+@app.route('/service-worker.js')
+def serve_worker():
+    return send_from_directory('lightshow-frontend/build/', 'service-worker.js')
+        
+
 
 @app.errorhandler(500)
 def internal_server_error(e):
@@ -136,7 +149,7 @@ def internal_server_error(e):
 
 
 if __name__ == "__main__":
-    t = Thread(target=app.run, kwargs={"host":"0.0.0.0", "port" : 5002})
+    t = Thread(target=app.run, kwargs={"host":"0.0.0.0", "port" : 80})
     t.daemon = True
     t.start()
     run_server()
