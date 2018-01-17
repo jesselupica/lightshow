@@ -3,7 +3,8 @@ import socket
 import uuid
 from time import sleep 
 
-SERVER_IP = "104.131.78.170"
+# SERVER_IP = "104.131.78.170"
+SERVER_DOMAIN = 'jesselupica.com'
 SERVER_PORT = "5001"
 
 class Client(object):
@@ -122,6 +123,6 @@ class Client(object):
 if __name__ == '__main__':
     from HSVVisualizer import HSVVisualizer
     vis = HSVVisualizer(0,0,0)
-    cli = Client('localhost', 5001, vis)
+    cli = Client(SERVER_DOMAIN, SERVER_PORT, vis)
     cli.run_client()
 
