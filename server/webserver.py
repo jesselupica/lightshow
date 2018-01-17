@@ -15,7 +15,7 @@ CORS(app)
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server.setblocking(0)
-server.bind(('localhost', 5001))
+server.bind(('', 5001))
 server.listen(5)
 inputs = [server]
 outputs = []
