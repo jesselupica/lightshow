@@ -39,6 +39,10 @@ const styles = {
   },
 };
 
+const list_padding = {
+  padding: 0,
+}
+
 const cardContainerStyle = {
   display: 'flex',
   flexWrap: 'wrap',
@@ -325,7 +329,7 @@ export default class CardStream extends Component {
   render() {
     return (
       <div>
-        <ul>
+        <ul style={list_padding}>
           {this.state.devices.map(device =>
             <li key={device.id} style={cardContainerStyle}>
               <LightSettingsCard device={device}/>
