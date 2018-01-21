@@ -8,7 +8,6 @@ from flask import Flask, request, render_template, send_from_directory
 from threading import Thread
 from flask_cors import CORS
 
-
 app = Flask(__name__, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
 CORS(app)
 
@@ -141,7 +140,9 @@ def serve_static(path):
 def serve_worker():
     return send_from_directory('lightshow-frontend/build/', 'service-worker.js')
         
-
+@app.route('/favicon.ico')
+def serve_fav():
+    return send_from_directory('lightshow-frontend/build/', 'favicon.ico')
 
 @app.errorhandler(500)
 def internal_server_error(e):
