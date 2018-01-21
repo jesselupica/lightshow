@@ -6,6 +6,8 @@ import random
 import numpy
 import math
 
+### Depreciated ###
+
 class RGBVisualizer(Visualizer): 
     ACCELERATION = 12.5
     INIT_RGB_COEFF = 20, 20, 16

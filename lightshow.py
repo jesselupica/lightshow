@@ -5,7 +5,7 @@ import tty
 import os
 import traceback
 import threading, thread
-import webserver
+import deviceClient
 #from RGBVisualizer import RGBVisualizer
 from HSVVisualizer import HSVVisualizer
 from globalvars import light_visualizer
@@ -14,6 +14,7 @@ from globalvars import light_visualizer
 from analyzer import Analyzer
 from subprocess import call
 from time import sleep 
+
 
 # this runs on a pi, so make sure you update the name of your pi to the correct name
 pi_name = 'raspberrypi'
@@ -40,6 +41,7 @@ GREEN_PIN = 22
 BLUE_PIN  = 24
 
 def update_colors(red, green, blue):
+    print (red, blue, green)
     uname = os.uname()
     if uname[1] == pi_name and uname[0] == 'Linux':
         pi.set_PWM_dutycycle(RED_PIN, int(red))
@@ -55,15 +57,12 @@ def visualize(light_visualizer, file_name=None):
         while True: 
             sound_data = music.get_chunk()
             if not sound_data:
-                print("no sound data")
                 continue
 
             if light_visualizer.is_asleep:
-                sleep(1)
-                print "im asleep"
+                sleep(0.1)
             if light_visualizer.is_off:
-                sleep(10)
-                print "im off"
+                sleep(0.1)
 
             light_visualizer.visualize(sound_data, rate)
             #analyzer.update(light_visualizer)
@@ -116,18 +115,16 @@ if __name__ == '__main__':
     print("Start recording...")
     print("Press 'C' to turn lights off")
     print("Press SPACE to toggle music visualization")
-    print("Press the following buttons to change the lights to that color")
-    print("1: RED, 2: BLUE, 3: GREEN, 4: PURPLE, 5: AQUA")
 
-    t1 = threading.Thread(target=control_visualizer_settings, args=(light_visualizer,))
-    t1.daemon = True
-    t1.start()
+    # t1 = threading.Thread(target=control_visualizer_settings, args=(light_visualizer,))
+    # t1.daemon = True
+    # t1.start()
 
-    t2 = threading.Thread(target=webserver.run_server)
+    cli = deviceClient.Client(light_visualizer)
+
+    t2 = threading.Thread(target=cli.run_client)
     t2.daemon = True
     t2.start()
-
-    print webserver.get_state()
     
     if len(sys.argv) >= 2:
         visualize(light_visualizer, file_name=sys.argv[1])

@@ -7,8 +7,7 @@ import random
 State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'avg_amp'])
 
 class HSVVisualizer(Visualizer):
-
-    COLOR_TABLE = {'BLUE': float(2)/3, 'RED': 1, 'GREEN': float(1)/3, 'PURPLE': 282.0/360, 'PINK':340.0/360, 'TURQUOISE':199.0/360, 'ORANGE':14.0/360}
+    COLOR_TABLE = {'BLUE': float(2)/3, 'RED': 1, 'GREEN': float(1)/3, 'PURPLE': 282.0/360, 'PINK':340.0/360, 'TEAL':199.0/360, 'ORANGE':14.0/360}
     LIGHT_MODES = ['VISUALIZE_MUSIC', 'STATIC_COLOR', 'FADE', 'ASLEEP', 'OFF', 'CUSTOM_STATIC_COLOR']
 
     HISTORY_SIZE = 50
@@ -33,9 +32,11 @@ class HSVVisualizer(Visualizer):
         self.visualize_music = True
         self.static_color = 'BLUE'
         self.fade_speed = 0.001
+        self.fade_speed_range = 0.0001, 0.01
         self.is_off = False
         self.is_asleep = False
         # 0: no subspectrum islated, 1: red isolated, 2: green isolated, 3: blue isolated
+        # Also this doesn't work... 
         self.subspectrum = 0
 
         self.amps = []
@@ -50,7 +51,8 @@ class HSVVisualizer(Visualizer):
         return rgb
 
     def get_state(self):
-        return {'hue': self.hue, 'saturation': self.saturation, 'value':self.value, 'mode': self.mode, 'is_asleep':self.is_asleep}
+        interface_fade_speed = (self.fade_speed - self.fade_speed_range[0]) / (self.fade_speed_range[1] - self.fade_speed_range[0]) 
+        return {'hue': self.hue, 'saturation': self.saturation, 'value':self.value, 'mode': self.mode, 'is_asleep':self.is_asleep, 'fade_speed' : interface_fade_speed}
 
     def turn_off_lights(self):
         self.set_color('BLACK')
@@ -83,10 +85,15 @@ class HSVVisualizer(Visualizer):
         self._bounds_check()
 
     def set_brightness(self, brightness):
-        self.visualize_music = False
-        self.mode = HSVVisualizer.LIGHT_MODES[5]
         self.value = brightness
         self._bounds_check()
+
+    # fade speed should be between 0 and 1 
+    # where 1 is the max fade speed and 0 is the min fade speed
+    # if you want to change those values, that's in the constructor
+    def set_fade_speed(self, fade_speed):
+        transformed_val = (self.fade_speed_range[1] - self.fade_speed_range[0]) * fade_speed + self.fade_speed_range[0]
+        self.fade_speed = transformed_val
 
     def set_color(self, color):
         self.visualize_music = False
@@ -109,6 +116,8 @@ class HSVVisualizer(Visualizer):
             self.value = old_val  
         self._bounds_check()
 
+    # depreciated 
+    # TODO: Remove
     def update_bass_treble_ratio(self, increase):
         incr = 0.05
         if increase:
@@ -260,7 +269,7 @@ class HSVVisualizer(Visualizer):
         val = (self.value_chaser - self.value_min)/ (self.value_max - self.value_min)
         if self.visualize_music:
             self.value =  val
-        print ( self.value, is_hit) 
+        #print ( self.value, is_hit) 
         self._bounds_check()
         return is_hit, local_maxima
     
