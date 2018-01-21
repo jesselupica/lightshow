@@ -229,7 +229,7 @@ class HSVVisualizer(Visualizer):
         hue_scale = 0.035
 
         value_avgamount = 10
-        value_pull = 0.05 #0.4 is a good number
+        value_pull = 0.2 #0.4 is a good number
 
         local_maxima = self._find_local_maxes(freq_amps)
 

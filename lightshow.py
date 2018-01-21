@@ -27,12 +27,12 @@ pi = None
 screen = None
 
 uname = os.uname()
-
+analyzer = None
 if uname[1] == pi_name and uname[0] == 'Linux':
     pi = pigpio.pi()
     print(pi)
-
-analyzer = Analyzer()
+else:
+    analyzer = Analyzer()
 
 # The Pins. Use Broadcom numbers.
 RED_PIN   = 17
@@ -66,7 +66,7 @@ def visualize(light_visualizer, file_name=None):
                 print "im off"
 
             light_visualizer.visualize(sound_data, rate)
-            analyzer.update(light_visualizer)
+            #analyzer.update(light_visualizer)
             update_colors(*light_visualizer.tuple())
 
     except KeyboardInterrupt:
