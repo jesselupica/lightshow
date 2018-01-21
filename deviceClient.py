@@ -5,10 +5,10 @@ from time import sleep
 
 # SERVER_IP = "104.131.78.170"
 SERVER_DOMAIN = 'jesselupica.com'
-SERVER_PORT = "5001"
+SERVER_PORT = 5001
 
 class Client(object):
-    def __init__(self, server_ip, server_port, visualizer):
+    def __init__(self, visualizer, server_ip=SERVER_DOMAIN, server_port=SERVER_PORT):
         super(Client, self).__init__()
         self.server_ip = server_ip
         self.server_port = server_port
