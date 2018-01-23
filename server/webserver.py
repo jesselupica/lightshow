@@ -72,7 +72,10 @@ def add_input_connection(s):
     inputs.append(connection)
 
 def handle_request(s):
-    data = s.recv(1024)
+    try:
+        data = s.recv(1024)
+    except:
+        return
     print data + " | "
     if data:
         for message in data.split('\n'):
