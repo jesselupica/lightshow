@@ -145,6 +145,7 @@ class DeviceInfoHeader extends React.Component {
   state = {
     open: false,
     nickname: '',
+    renamed: false,
   };
 
   handleOpenRename = () => {
@@ -161,7 +162,7 @@ class DeviceInfoHeader extends React.Component {
     axios.post(url, {
         nickname: this.state.nickname
       });
-    this.setState({open: false});
+    this.setState({open: false, renamed: true});
   };
 
   updateNickname = (event, newObject) => {
@@ -193,7 +194,7 @@ class DeviceInfoHeader extends React.Component {
       <ListItem
         leftAvatar={<Avatar backgroundColor='white' src='http://www.glassblower.info/blog/wp-content/uploads/2013/04/raspberry-pi-logo-300-pixels.png' />}
         rightIconButton={rightIconMenu2}
-        primaryText={this.props.nickname}
+        primaryText={this.state.renamed ? this.state.nickname : this.props.nickname}
         secondaryText={this.props.deviceType}
         onClick={this.handleOpenRename}
       />
