@@ -128,7 +128,7 @@ def show_user_profile(device_id):
         return json.dumps(device_index[device_id].to_json())
 
 @app.route('/device/remove/<device_id>', methods=['POST'])
-def remove_device():
+def remove_device(device_id):
     if request.method == 'POST':
         del(device_index[device_id])
         registered_devices = [r for r in registered_devices if r.registration_id != device_id]

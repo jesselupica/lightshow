@@ -120,6 +120,12 @@ class ControlSlider extends Component {
   }
 }
 
+function removeDevice(device_id) {
+  var url = webserver + "device/remove/" + device_id
+    axios.post(url);
+}
+
+
 const iconButtonElement = (
     <IconButton
     touch={true}
@@ -131,11 +137,17 @@ const iconButtonElement = (
 );
  
 
-const rightIconMenu2 = (
-    <IconMenu iconButtonElement={iconButtonElement}>
-      <MenuItem >Remove Device</MenuItem>
+
+function rightIconMenu(props) {
+  return (
+    <IconMenu iconButtonElement={<IconButton><MoreVertIcon /></IconButton>}
+          onChange={this.handleChangeSingle}
+          value={this.state.valueSingle}
+        >      
+        <MenuItem onClick={() => removeDevice(props.device_id)} primaryText={"Remove Device"}/>
     </IconMenu>
   );
+};
 
 
 
@@ -193,7 +205,14 @@ class DeviceInfoHeader extends React.Component {
       <List>
       <ListItem
         leftAvatar={<Avatar backgroundColor='white' src='http://www.glassblower.info/blog/wp-content/uploads/2013/04/raspberry-pi-logo-300-pixels.png' />}
-        rightIconButton={rightIconMenu2}
+        rightIconButton={
+          <IconMenu iconButtonElement={<IconButton><MoreVertIcon /></IconButton>}
+            onChange={this.handleChangeSingle}
+            value={this.state.valueSingle}
+          >      
+            <MenuItem onClick={() => removeDevice(this.props.device_id)} primaryText={"Remove Device"}/>
+          </IconMenu>
+        }
         primaryText={this.state.renamed ? this.state.nickname : this.props.nickname}
         secondaryText={this.props.deviceType}
         onClick={this.handleOpenRename}
