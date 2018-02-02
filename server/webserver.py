@@ -124,11 +124,25 @@ def show_user_profile(device_id):
     elif request.method == 'GET':
         return json.dumps(device_index[device_id].to_json())
 
+@app.route('/device/remove/<device_id>', methods=['POST'])
+def remove_device():
+    if request.method == 'POST':
+        del(device_index[device_id])
+        registered_devices = [r for r in registered_devices if r.registration_id != device_id]
+        save_registered_devices()
+
+@app.route('/device/rename/<device_id>', methods=['POST'])
+def rename_device():
+    if request.method == 'POST':
+        data = json.loads(request.data)
+        device_index[device_id].nickname = data['nickname']
+        save_registered_devices()
+
 @app.route("/devices")
 def get_devices():
     return json.dumps([d.to_json() for d in registered_devices])
 
-@app.route('/lights')
+@app.route('/')
 def index():
     return render_template('index.html')
 
@@ -147,7 +161,6 @@ def serve_fav():
 @app.errorhandler(500)
 def internal_server_error(e):
     print e
-
 
 if __name__ == "__main__":
     t = Thread(target=app.run, kwargs={"host":"0.0.0.0", "port" : 80})
