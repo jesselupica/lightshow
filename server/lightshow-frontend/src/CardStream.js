@@ -158,7 +158,9 @@ class DeviceInfoHeader extends React.Component {
 
   handleCloseRenameSubmit = (device_id) => {
     var url = webserver + "device/rename/" + device_id
-    axios.post(url);
+    axios.post(url, {
+        nickname: this.state.nickname
+      });
     this.setState({open: false});
   };
 
