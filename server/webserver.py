@@ -135,7 +135,7 @@ def remove_device():
         save_registered_devices()
 
 @app.route('/device/rename/<device_id>', methods=['POST'])
-def rename_device():
+def rename_device(device_id):
     if request.method == 'POST':
         data = json.loads(request.data)
         device_index[device_id].nickname = data['nickname']
