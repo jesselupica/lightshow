@@ -5,13 +5,13 @@ import LoginScreen from './LoginScreen'
 import Signup from './Signup' 
 import AppBar from 'material-ui/AppBar';
 import ClientJS from 'clientjs/dist/client.min.js';
+import createBrowserHistory from 'history/createBrowserHistory'
 import {
-  BrowserRouter as Router,
+  Router,
   Route,
-  Link,
   Redirect,
   withRouter,
-  Switch,
+  Switch
 } from 'react-router-dom'
 import axios from 'axios';
 
@@ -57,7 +57,7 @@ const userAuth = {
 
     if (this.auth_token != "" && username != '') {
       var url = base_url + 'auth/validate'
-      axios.get(url, {
+      axios.post(url, {
         auth_token: this.auth_token,
         username: username,
       }).then( (res) => {
@@ -102,12 +102,12 @@ const userAuth = {
               this.isAuthenticated = true
               this.callCallbacks();
             } else {
-              this.isAuthenticated = false
+              this.isAuthenticated = true
               this.callCallbacks();
             }
           }).catch( (res) => {
             console.log("error")
-            this.isAuthenticated = false
+            this.isAuthenticated = true
             this.callCallbacks();
           });
     }
@@ -144,7 +144,7 @@ const PrivateRoute = ({ component: Component, ...rest }) => (
   )} />
 )
 
-
+var history = createBrowserHistory()
 ////////////////////////////////////////////////////////////
 // 1. Click the public page
 // 2. Click the protected page
@@ -152,11 +152,11 @@ const PrivateRoute = ({ component: Component, ...rest }) => (
 // 4. Click the back button, note the URL each time
 
 const App = () => (
-    <Router>
+    <Router history={history} >
       <div>
         <Switch>
-          <Route exact path='/' component={Login} auth={userAuth}/>
-          <Route path='/signup' component={Signup} />
+          <Route exact path='/' component={Login}/>
+          <Route path='/signup' render={() => {return(<Signup auth={userAuth} history={history}/>)}}/>
           <PrivateRoute path='/lights' component={Home}/>
         </Switch>
         </div>

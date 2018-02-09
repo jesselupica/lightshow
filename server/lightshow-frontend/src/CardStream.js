@@ -122,7 +122,9 @@ class ControlSlider extends Component {
 
 function removeDevice(device_id) {
   var url = webserver + "device/remove/" + device_id
-    axios.post(url);
+    axios.post(url).then( (res) => {
+      window.location.reload();
+    });
 }
 
 

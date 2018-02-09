@@ -1,15 +1,8 @@
 import React, { Component } from 'react'
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import AppBar from 'material-ui/AppBar';
-import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
+import {Card, CardHeader, CardTitle, CardText} from 'material-ui/Card';
 import RaisedButton from 'material-ui/RaisedButton';
-import {
-  BrowserRouter as Router,
-  Route,
-  Link,
-  Redirect,
-  withRouter
-} from 'react-router-dom'
 import axios from 'axios';
 
 const styles = {
@@ -46,10 +39,7 @@ const buttonContainerStyle = {
    marginRight: 'auto',
   paddingRight: 10,
   paddingLeft: 10,
-
   border: '0px'
-
-
 }
 
 const cardsStyle = {
@@ -67,7 +57,8 @@ const cardContentStyle = {
 }
 
 const style = {
-  margin: 12,
+  margin: "12px 0px",
+  /*minWidth: '20%'*/
 };
 
 

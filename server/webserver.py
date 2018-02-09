@@ -133,6 +133,7 @@ def remove_device(device_id):
         del(device_index[device_id])
         registered_devices = [r for r in registered_devices if r.registration_id != device_id]
         save_registered_devices()
+        return 200
 
 @app.route('/device/rename/<device_id>', methods=['POST'])
 def rename_device(device_id):
@@ -140,6 +141,7 @@ def rename_device(device_id):
         data = json.loads(request.data)
         device_index[device_id].nickname = data['nickname']
         save_registered_devices()
+        return 200
 
 @app.route("/devices")
 def get_devices():
