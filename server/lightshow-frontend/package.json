@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "axios": "^0.17.1",
+    "clientjs": "^0.1.11",
     "express": "^4.15.2",
     "import-all-from": "^1.0.1",
     "jquery": "^3.2.1",
@@ -12,6 +13,7 @@
     "react-dom": "^16.2.0",
     "react-flexbox-grid": "^2.0.0",
     "react-http-request": "^1.0.3",
+    "react-router-dom": "^4.2.2",
     "react-scripts": "1.0.17",
     "request": "^2.83.0",
     "roboto": "^0.8.2",
