@@ -269,7 +269,6 @@ class HSVVisualizer(Visualizer):
         val = (self.value_chaser - self.value_min)/ (self.value_max - self.value_min)
         if self.visualize_music:
             self.value =  val
-        #print ( self.value, is_hit) 
         self._bounds_check()
         return is_hit, local_maxima
     

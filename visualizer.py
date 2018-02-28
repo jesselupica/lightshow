@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy
 import math
+from array import array
 
 class Visualizer(object):
 
@@ -28,7 +29,7 @@ class Visualizer(object):
 
     def _get_amplitude_at_frequency(self, freqs, aud_data, samp_freq):
         s1 = numpy.array(aud_data)
-        n = len(s1) 
+        n = s1.size
         p = numpy.fft.fft(s1) / float(n) # take the fourier transform 
 
         magnitude = [math.sqrt(x.real**2 + x.imag**2) for x in p]

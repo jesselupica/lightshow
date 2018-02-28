@@ -127,11 +127,13 @@ const userAuth = {
 const Home = () => (
   <div className="App">
     <MuiThemeProvider>
+    <div>
      <AppBar
         title="Lightshow"
         iconClassNameRight="muidocs-icon-navigation-expand-more"
       />
     <CardStream auth={userAuth}/>
+    </div>
     </MuiThemeProvider>
   </div>
 )

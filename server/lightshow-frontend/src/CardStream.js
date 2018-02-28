@@ -395,7 +395,6 @@ function LightSettingsCard(props) {
 export default class CardStream extends Component {
 
   static propTypes = {
-    items: PropTypes.arrayOf(PropTypes.node).isRequired,
     editMode: PropTypes.bool,
     removeItem: PropTypes.func,
     moveUpItem: PropTypes.func,
