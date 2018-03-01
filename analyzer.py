@@ -48,12 +48,14 @@ class CircleAnalyzer:
             for i in pygame.event.get():
                 if i.type == pygame.QUIT:
                     pygame.quit()
-            hsv = colorsys.rgb_to_hsv(*self.visualizer.tuple())
-            print hsv, "hsv"
+            if all( x == 0 for x in self.visualizer.tuple()):
+                rgb_tup = (1, 1, 1)
+            else:
+                rgb_tup = self.visualizer.tuple()
+
+            hsv = colorsys.rgb_to_hsv(*rgb_tup)
             color = [int(x * 255) for x in colorsys.hsv_to_rgb(hsv[0], hsv[1], 1)]
-            print (hsv[2] * (self.max_radius - self.min_radius) ), hsv[2]
             radius = (hsv[2]/255 * (self.max_radius - self.min_radius) ) + self.min_radius 
-            print radius
             self.screen.fill(black)
             pygame.draw.circle(self.screen, color, center, int(radius), 0)
             pygame.display.flip()

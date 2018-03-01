@@ -38,7 +38,7 @@ class FileStream(Stream):
                 channels = self.wf.getnchannels(),
                 rate = self.wf.getframerate(),
                 output = True) 
-        #data = self.wf.readframes(130000)
+        #data = self.wf.readframes(180000)
 
 
     def get_chunk(self):

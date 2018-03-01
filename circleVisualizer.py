@@ -31,21 +31,3 @@ def create_rings(screen, color_list, min_circle_size=10):
 
         pygame.draw.circle(screen, color, center, radius, 0)
     pygame.display.flip()
-
-if __name__ == '__main__':
-    
-    running = True
-    starting_val = 0.0
-    while running:
-        num_colors = 100
-        colors = []
-        for i in range(num_colors):
-            colors.append( tuple(int(x * MAX_VALUE) for x in colorsys.hsv_to_rgb(float(i)/num_colors + starting_val, 1, 1)))
-        create_rings(screen, colors)
-        time.sleep(0.1)
-        starting_val -= 0.01
-        starting_val %= 1
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
