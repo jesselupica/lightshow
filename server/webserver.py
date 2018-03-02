@@ -72,8 +72,8 @@ def clear_guests():
 def create_guest_user():
     guest_token = str(uuid.uuid1())
     # create this so that people can't log in as guests i give permissions to
-    username = hash(time.time())
-    password = hash(time.time() + 1)
+    username = hash(str(time.time()))
+    password = hash(str(time.time() + 1))
     clients[guest_token] = FrontendClient(guest_token, username, password, is_guest=True)
     return guest_token
 
@@ -164,7 +164,7 @@ def show_user_profile(device_id):
     # may have to change with auth
     if request.method == 'POST':
         data = json.loads(request.data)
-        data["command"]["client_privilege_level"] = clients[data["auth_token"]].priviledge_level
+        data["command"]["client_privilege_level"] = clients[data["auth_token"]].privilege_level
         print data["command"]
         if device_id in device_index:
             device_index[device_id].messages.append(data["command"])
