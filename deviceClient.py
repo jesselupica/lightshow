@@ -3,6 +3,7 @@ import socket
 import uuid
 from time import sleep 
 import os
+import sys
 
 #SERVER_IP = "104.131.78.170"
 SERVER_DOMAIN = 'jesselupica.com'
@@ -50,6 +51,7 @@ class Client(object):
             except socket.error as e:
                 # don't overwhelm the server when it goes down
                 sleep(0.1)
+                print e
             else:
                 try:
                     sock.send(json.dumps(self.registration) + "\n")
@@ -142,6 +144,10 @@ class Client(object):
 if __name__ == '__main__':
     from HSVVisualizer import HSVVisualizer
     vis = HSVVisualizer(0,0,0)
-    cli = Client(vis)
+    if len(sys.argv) > 2:
+        print sys.argv[1], sys.argv[2]
+        cli = Client(vis, sys.argv[1], int(sys.argv[2]))
+    else: 
+        cli = Client(vis)
     cli.run_client()
 

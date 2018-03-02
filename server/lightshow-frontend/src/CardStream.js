@@ -18,7 +18,8 @@ import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
 import MoreVertIcon from 'material-ui/svg-icons/navigation/more-vert';
 import {grey400} from 'material-ui/styles/colors';
-import {blue300, blue900, red300, red900, green300, green900, purple300, purple900, pink300, pink900, teal300, teal900, orange300, orange900} from 'material-ui/styles/colors';
+import Subheader from 'material-ui/Subheader';
+import {blue300, blue900, red300, red900, green300, green900, purple300, purple900, pink300, pink900, teal300, teal900, orange300, orange900, pink200} from 'material-ui/styles/colors';
 import axios from 'axios';
 
 var webserver = "http://jesselupica.com/"
@@ -150,9 +151,6 @@ function rightIconMenu(props) {
     </IconMenu>
   );
 };
-
-
-
 
 class DeviceInfoHeader extends React.Component {
 
@@ -392,6 +390,67 @@ function LightSettingsCard(props) {
         )
 }
 
+class AdminHeader extends React.Component {
+    render() {
+      return (
+        <div>
+          <List>
+
+            <ListItem
+              leftAvatar={<Avatar backgroundColor={red300}>A</Avatar>}
+              primaryText="Admin Settings"
+              secondaryText={this.props.deviceType}
+              disabled={true}/>
+          </List>
+        </div>)
+    }
+}
+
+class AdminPrivilidgeList extends React.Component {
+
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      users: []
+    };
+  }
+
+  componentDidMount() {
+    var url = webserver + "admin/users" 
+    axios.get(url, {
+      auth_token: this.props.auth.auth_token
+    }).then(res => {
+        const users = res.data
+        this.setState({ users });
+      });
+  }
+
+  render() {
+    return (
+      <List>
+        <Subheader>Active Users</Subheader>
+          {this.state.users.map(user =>
+            <li key={user.id}>
+              <ListItem device={user}/>
+            </li>
+          )}
+      </List>
+    )
+  }
+}
+
+function AdminCard(props) {
+  return(<div style={cardContainerStyle}>
+      <Card style={cardsStyle}>
+          <AdminHeader deviceType="Light Visualizer"/>
+          <Divider/>
+          <AdminPrivilidgeList auth={props.auth}/>
+      </Card>
+    </div>
+    )
+}
+
 export default class CardStream extends Component {
 
   static propTypes = {
@@ -400,7 +459,6 @@ export default class CardStream extends Component {
     moveUpItem: PropTypes.func,
     moveDownItem: PropTypes.func
   }
-
 
   constructor(props) {
     super(props);
@@ -420,8 +478,10 @@ export default class CardStream extends Component {
   }
 
   render() {
+    console.log(this.props.auth)
     return (
       <div>
+        <AdminCard auth={this.props.auth}/>
         <ul style={list_padding}>
           {this.state.devices.map(device =>
             <li key={device.id} style={cardContainerStyle}>

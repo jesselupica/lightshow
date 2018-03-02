@@ -3,6 +3,7 @@ import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import CardStream from './CardStream';
 import LoginScreen from './LoginScreen'
 import Signup from './Signup' 
+import Signin from './Signin' 
 import AppBar from 'material-ui/AppBar';
 import ClientJS from 'clientjs/dist/client.min.js';
 import createBrowserHistory from 'history/createBrowserHistory'
@@ -159,6 +160,7 @@ const App = () => (
         <Switch>
           <Route exact path='/' component={Login}/>
           <Route path='/signup' render={() => {return(<Signup auth={userAuth} history={history}/>)}}/>
+          <Route path='/login' render={() => {return(<Signin auth={userAuth} history={history}/>)}}/>
           <PrivateRoute path='/lights' component={Home}/>
         </Switch>
         </div>
@@ -170,7 +172,8 @@ class Login extends React.Component {
     super(props)
     this.state = {
       redirectToReferrer: userAuth.isAuthenticated,
-      redirectToSignin: false
+      redirectToSignup: false,
+      redirectToSignin: false,
     }
     userAuth.registerChange((auth) => this.setState({redirectToReferrer: auth.isAuthenticated}))
     userAuth.authenticate(() => {})
@@ -185,15 +188,27 @@ class Login extends React.Component {
     userAuth.signup(() => {})
   }
 
+  newUserLogin = () => {
+    console.log("hello friend")
+    this.setState({redirectToSignup: true})
+  }
+
   userLogin = () => {
+    console.log("hi friend")
     this.setState({redirectToSignin: true})
   }
 
   render() {  
 
-    if( this.state.redirectToSignin) {
+    if( this.state.redirectToSignup) {
       return (
         <Redirect to={"/signup"}/>
+      )
+    }
+
+    if( this.state.redirectToSignin) {
+      return (
+        <Redirect to={"/login"}/>
       )
     }
 
@@ -206,7 +221,7 @@ class Login extends React.Component {
     return (
       <div>
       <MuiThemeProvider>
-        <LoginScreen guestClick={this.loginAsGuest} signupClick={this.userLogin}/>
+        <LoginScreen guestClick={this.loginAsGuest} signupClick={this.newUserLogin} loginClick={this.userLogin}/>
       </MuiThemeProvider>
       </div>
     )
