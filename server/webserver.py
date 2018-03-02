@@ -197,7 +197,8 @@ def rename_device(device_id):
 def get_devices():
     return json.dumps([d.to_json() for d in registered_devices])
 
-@app.route('/')
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
 def index():
     return render_template('index.html')
 
