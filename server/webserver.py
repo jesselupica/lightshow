@@ -3,10 +3,14 @@ import os.path
 import select
 import socket
 import sys
-from deviceModel import Device
+import uuid
+import time
+from collections import OrderedDict
+from models import Device, FrontendClient
 from flask import Flask, request, render_template, send_from_directory
 from threading import Thread
 from flask_cors import CORS
+
 
 app = Flask(__name__, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
 CORS(app)
@@ -24,6 +28,9 @@ registered_devices = []
 device_index = {}
 
 registration_file = "registered_devices.json"
+client_file = "clients.json"
+
+clients = OrderedDict()
 
 ## TODO: Define a get state method
 
@@ -40,12 +47,44 @@ def load_registered_devices():
                 registered_devices.append(d)
                 device_index[device_json["id"]] = d
 
+def load_client_credentials():
+    if os.path.isfile(client_file):
+        with open(client_file, mode="r+") as f:
+            client_data = json.loads(f.read())
+            for client_json in client_data:
+                cli = FrontendClient(client_json["auth_token"], 
+                    client_json["username"], 
+                    client_json["hashed_pass"], 
+                    priv = client_json["priviledge_level"])
+                clients[client_json["auth_token"]] = cli
+
 def save_registered_devices():
     with open(registration_file, mode="w+") as f:
         f.write(json.dumps([d.to_json() for d in registered_devices]))
 
+def save_client_credentials():
+    with open(client_file, mode="w+") as f:
+        f.write(json.dumps([c.to_json() for c in clients if not c.is_guest]))
+
+def clear_guests():
+    clients = OrderedDict([tuple(k, v) for k,v in clients.items() if not v.is_guest])
+
+def create_guest_user():
+    guest_token = str(uuid.uuid1())
+    # create this so that people can't log in as guests i give permissions to
+    username = hash(time.time())
+    password = hash(time.time() + 1)
+    clients[guest_token] = FrontendClient(guest_token, username, password, is_guest=True)
+    return guest_token
+
+def create_user(username, password):
+    auth_token = str(uuid.uuid1())
+    clients[auth_token] = FrontendClient(auth_token, username, password)
+    return auth_token
+
 def run_server():
     load_registered_devices()
+    load_client_credentials()
     while inputs:
         readable, writable, exceptional = select.select(inputs, outputs, inputs)
         for s in readable:
@@ -125,6 +164,8 @@ def show_user_profile(device_id):
     # may have to change with auth
     if request.method == 'POST':
         data = json.loads(request.data)
+        data["command"]["client_priviledge_level"] = clients[data["auth_token"]].priviledge_level
+        print data["command"]
         if device_id in device_index:
             device_index[device_id].messages.append(data["command"])
         return "Message relayed"
@@ -174,7 +215,15 @@ def serve_fav():
 
 @app.route('/auth/init', methods=['POST'])
 def auth_init():
-    return "test token"
+    if request.method == 'POST':
+        data = json.loads(request.data)
+        auth_token = create_user(data['username'], data['password'])
+        save_client_credentials()
+        return auth_token
+
+@app.route('/auth/guest/init')
+def auth_guest_init():
+    return create_guest_user()
 
 @app.route('/auth/verify', methods=['POST'])
 def auth_verify():
