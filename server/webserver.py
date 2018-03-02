@@ -172,6 +172,14 @@ def serve_worker():
 def serve_fav():
     return send_from_directory('lightshow-frontend/build/', 'favicon.ico')
 
+@app.route('/auth/init', methods=['POST'])
+def auth_init():
+    return "test token"
+
+@app.route('/auth/verify', methods=['POST'])
+def auth_verify():
+    return "test token verify"
+
 @app.errorhandler(500)
 def internal_server_error(e):
     print e
