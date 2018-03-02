@@ -64,7 +64,7 @@ def save_registered_devices():
 
 def save_client_credentials():
     with open(client_file, mode="w+") as f:
-        f.write(json.dumps([c.to_json() for c in clients if not c.is_guest]))
+        f.write(json.dumps([c.to_json() for auth, c in clients.items() if not c.is_guest]))
 
 def clear_guests():
     clients = OrderedDict([tuple(k, v) for k,v in clients.items() if not v.is_guest])
