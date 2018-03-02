@@ -227,7 +227,18 @@ def auth_guest_init():
 
 @app.route('/auth/verify', methods=['POST'])
 def auth_verify():
-    return "test token verify"
+    if request.method == 'POST':
+        found = False
+        auth = ''
+        data = json.loads(request.data)
+        for auth_token, cli in clients.items():
+            if data["username"] == cli.username:
+                if cli.check_pass(data["password"]):
+                    auth = auth_token
+                    break
+        if found:
+            return auth
+    return 403
 
 @app.errorhandler(500)
 def internal_server_error(e):
@@ -238,4 +249,3 @@ if __name__ == "__main__":
     t.daemon = True
     t.start()
     run_server()
-    
