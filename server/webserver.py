@@ -26,7 +26,11 @@ device_index = {}
 registration_file = "registered_devices.json"
 
 ## TODO: Define a get state method
-    
+
+def remove_device_from_registration_list(device_id, r=registered_devices):
+    a = r
+    registered_devices = [r for r in a if r.registration_id != device_id] 
+
 def load_registered_devices():
     if os.path.isfile(registration_file):
         with open(registration_file, mode="r+") as f:
@@ -72,7 +76,10 @@ def add_input_connection(s):
     inputs.append(connection)
 
 def handle_request(s):
-    data = s.recv(1024)
+    try:
+        data = s.recv(1024)
+    except:
+        return
     print data + " | "
     if data:
         for message in data.split('\n'):
@@ -124,6 +131,27 @@ def show_user_profile(device_id):
     elif request.method == 'GET':
         return json.dumps(device_index[device_id].to_json())
 
+@app.route('/device/remove/<device_id>', methods=['POST'])
+def remove_device(device_id):
+    if request.method == 'POST':
+        try:
+            registered_devices.remove(device_index[device_id])
+            del(device_index[device_id])
+        except:
+            print registered_devices
+        remove_device_from_registration_list(device_id)
+        save_registered_devices()
+        return 200
+
+    
+@app.route('/device/rename/<device_id>', methods=['POST'])
+def rename_device(device_id):
+    if request.method == 'POST':
+        data = json.loads(request.data)
+        device_index[device_id].nickname = data['nickname']
+        save_registered_devices()
+        return 200
+        
 @app.route("/devices")
 def get_devices():
     return json.dumps([d.to_json() for d in registered_devices])
@@ -147,7 +175,6 @@ def serve_fav():
 @app.errorhandler(500)
 def internal_server_error(e):
     print e
-
 
 if __name__ == "__main__":
     t = Thread(target=app.run, kwargs={"host":"0.0.0.0", "port" : 80})

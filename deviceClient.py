@@ -2,8 +2,9 @@ import json
 import socket
 import uuid
 from time import sleep 
+import os
 
-# SERVER_IP = "104.131.78.170"
+#SERVER_IP = "104.131.78.170"
 SERVER_DOMAIN = 'jesselupica.com'
 SERVER_PORT = 5001
 
@@ -22,7 +23,8 @@ class Client(object):
                         'sat' : self.set_sat,
                         'brightness' : self.set_brightness,
                         'mode' : self.set_mode,
-                        'fade_speed' : self.set_fade_speed}
+                        'fade_speed' : self.set_fade_speed,
+                        'git pull' : self.pull_from_repo}
         self.register_device()
 
     def register_device(self):
@@ -49,11 +51,17 @@ class Client(object):
                 # don't overwhelm the server when it goes down
                 sleep(0.1)
             else:
-                sock.send(json.dumps(self.registration) + "\n")
+                try:
+                    sock.send(json.dumps(self.registration) + "\n")
+                except socket.error as e:
+                    continue
                 self.send_state(sock)
 
                 while True: 
-                    req_str = sock.recv(1024)
+                    try: 
+                        req_str = sock.recv(1024)
+                    except socket.error: 
+                        break
                     if not req_str:
                         break
                     for r in req_str.split('\n'):
@@ -71,7 +79,10 @@ class Client(object):
 
     def send_state(self, sock):
         mess = {"id" : self.registration["registration"], "state" : self.vis.get_state()}
-        sock.send(json.dumps(mess) + '\n')
+        try:
+            sock.send(json.dumps(mess) + '\n')
+        except socket.error:
+            return
 
     def set_sat(self, sat):
         self.vis.set_sat(float(sat))
@@ -119,10 +130,18 @@ class Client(object):
     def set_fade_speed(self, speed):
         self.vis.set_fade_speed(float(speed))
 
+    def pull_from_repo(self):
+        os.system('git stash && git checkout master && git pull')
+        for i in range(5):
+            self.vis.turn_off_lights()
+            time.sleep(0.5)
+            self.vis.turn_on_fade()
+            time.sleep(0.5)
+
 
 if __name__ == '__main__':
     from HSVVisualizer import HSVVisualizer
     vis = HSVVisualizer(0,0,0)
-    cli = Client(SERVER_DOMAIN, SERVER_PORT, vis)
+    cli = Client(vis)
     cli.run_client()
 

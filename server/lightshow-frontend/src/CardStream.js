@@ -13,6 +13,9 @@ import ImageBrightness1 from 'material-ui/svg-icons/image/brightness-1';
 import IconMenu from 'material-ui/IconMenu';
 import MenuItem from 'material-ui/MenuItem';
 import IconButton from 'material-ui/IconButton';
+import FlatButton from 'material-ui/FlatButton';
+import RaisedButton from 'material-ui/RaisedButton';
+import TextField from 'material-ui/TextField';
 import MoreVertIcon from 'material-ui/svg-icons/navigation/more-vert';
 import {grey400} from 'material-ui/styles/colors';
 import {blue300, blue900, red300, red900, green300, green900, purple300, purple900, pink300, pink900, teal300, teal900, orange300, orange900} from 'material-ui/styles/colors';
@@ -117,6 +120,14 @@ class ControlSlider extends Component {
   }
 }
 
+function removeDevice(device_id) {
+  var url = webserver + "device/remove/" + device_id
+    axios.post(url).then( (res) => {
+      window.location.reload();
+    });
+}
+
+
 const iconButtonElement = (
     <IconButton
     touch={true}
@@ -126,23 +137,106 @@ const iconButtonElement = (
     <MoreVertIcon color={grey400}/>
   </IconButton>
 );
+ 
 
 
-const rightIconMenu2 = (
-  <IconMenu iconButtonElement={iconButtonElement}>
-    <MenuItem>Rename Device</MenuItem>
-  </IconMenu>
-);
+function rightIconMenu(props) {
+  return (
+    <IconMenu iconButtonElement={<IconButton><MoreVertIcon /></IconButton>}
+          onChange={this.handleChangeSingle}
+          value={this.state.valueSingle}
+        >      
+        <MenuItem onClick={() => removeDevice(props.device_id)} primaryText={"Remove Device"}/>
+    </IconMenu>
+  );
+};
 
-function DeviceInfoHeader(props) {
-    return (<List>
+
+
+
+class DeviceInfoHeader extends React.Component {
+
+  state = {
+    open: false,
+    nickname: '',
+    renamed: false,
+  };
+
+  handleOpenRename = () => {
+    this.setState({open: true});
+  };
+
+  handleCloseRenameCancel = () => {
+    console.log("cancel")
+    this.setState({open: false});
+  };
+
+  handleCloseRenameSubmit = (device_id) => {
+    var url = webserver + "device/rename/" + device_id
+    axios.post(url, {
+        nickname: this.state.nickname
+      });
+    this.setState({open: false, renamed: true});
+  };
+
+  updateNickname = (event, newObject) => {
+    this.setState({nickname: newObject});
+  }
+
+
+    render() {
+
+      const actions = [
+        <FlatButton
+          label="Cancel"
+          primary={false}
+          onClick={this.handleCloseRenameCancel}
+        />,
+        <FlatButton
+          label="Submit"
+          primary={true}
+          keyboardFocused={true}
+          onClick={() => {this.handleCloseRenameSubmit(this.props.device_id)}}
+        />,
+      ];
+
+
+      return (
+            <div>
+
+      <List>
       <ListItem
         leftAvatar={<Avatar backgroundColor='white' src='http://www.glassblower.info/blog/wp-content/uploads/2013/04/raspberry-pi-logo-300-pixels.png' />}
-        rightIconButton={rightIconMenu2}
-        primaryText={props.nickname}
-        secondaryText={props.deviceType}
+        rightIconButton={
+          <IconMenu iconButtonElement={<IconButton><MoreVertIcon /></IconButton>}
+            onChange={this.handleChangeSingle}
+            value={this.state.valueSingle}
+          >      
+            <MenuItem onClick={() => removeDevice(this.props.device_id)} primaryText={"Remove Device"}/>
+          </IconMenu>
+        }
+        primaryText={this.state.renamed ? this.state.nickname : this.props.nickname}
+        secondaryText={this.props.deviceType}
+        onClick={this.handleOpenRename}
       />
-    </List>)
+    </List>
+    <Dialog
+        title="Rename Device?"
+        actions={actions}
+        modal={false}
+        open={this.state.open}
+        onRequestClose={this.handleCloseRenameCancel}
+        autoScrollBodyContent={true}
+      >
+      <TextField
+        hintText="New Device Name"
+        value={this.state.nickname}
+        fullWidth={true}
+        onChange={this.updateNickname}
+      /><br />
+    </Dialog>
+    </div>)
+    }
 }
 
 class LightModeTabs extends React.Component {
@@ -291,7 +385,7 @@ function LightSettingsCard(props) {
     var displayed_name = props.device.nickname !== "" ? props.device.nickname : props.device.id
     return (
         <Card style={cardsStyle}>
-            <DeviceInfoHeader nickname={displayed_name} deviceType="Light Visualizer"/>
+            <DeviceInfoHeader nickname={displayed_name} device_id={props.device.id} deviceType="Light Visualizer"/>
             <Divider/>
             <LightModeTabs device={props.device}/>
             </Card>
@@ -301,7 +395,6 @@ function LightSettingsCard(props) {
 export default class CardStream extends Component {
 
   static propTypes = {
-    items: PropTypes.arrayOf(PropTypes.node).isRequired,
     editMode: PropTypes.bool,
     removeItem: PropTypes.func,
     moveUpItem: PropTypes.func,

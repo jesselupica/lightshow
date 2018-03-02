@@ -1,26 +1,37 @@
 from __future__ import division
 from visualizer import Visualizer
 from collections import deque, namedtuple
+from itertools import cycle
 import colorsys
 import random
+import numpy as np
 
 State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'avg_amp'])
 
+HUE_AVG_AMOUNT = 40
+HUE_CHASER_MULTIPLIER = 0.01
+HUE_SHIFT_MULTIPLIER = 2
+
+VALUE_AVG_AMOUNT = 10
+VALUE_PULL = 0.30 #0.4 is a good number
+
+HISTORY_SIZE = 50
+HISTORY_SAMPLE_SIZE = 20
+
 class HSVVisualizer(Visualizer):
-    COLOR_TABLE = {'BLUE': float(2)/3, 'RED': 1, 'GREEN': float(1)/3, 'PURPLE': 282.0/360, 'PINK':340.0/360, 'TEAL':199.0/360, 'ORANGE':14.0/360}
+    color_table = {'RED': 1, 'ORANGE':0.038888, 'GREEN': 0.3333, 'TEAL':0.5527777, 'BLUE': 0.66666, 'PURPLE': 0.783333, 'PINK':0.9444  }
     LIGHT_MODES = ['VISUALIZE_MUSIC', 'STATIC_COLOR', 'FADE', 'ASLEEP', 'OFF', 'CUSTOM_STATIC_COLOR']
 
-    HISTORY_SIZE = 50
-    HISTORY_SAMPLE = 10
     TREBLE_BASS_DIVIDE = 30
     
     def __init__(self, r, g, b):
         self.hue = 1
         self.saturation = 1
         self.value = 1
-        self.state_deque = deque([], maxlen=HSVVisualizer.HISTORY_SIZE)
+        self.state_deque = deque([], maxlen=HISTORY_SIZE)
         
         self.hue_chaser = 0
+        self.hues = cycle(sorted(HSVVisualizer.color_table.values()))
         
         self.value_chaser = 0.5
         
@@ -43,16 +54,15 @@ class HSVVisualizer(Visualizer):
 
         
     def tuple(self):
-        if self.subspectrum != 0:
-            filtered_hue = self._isolate_subspectrum(self.hue)
-        else:
-            filtered_hue = self.hue
-        rgb = tuple( x * Visualizer.RGB_INTENSITY_MAX for x in colorsys.hsv_to_rgb(filtered_hue, self.saturation, self.value))
-        return rgb
+        max_val = Visualizer.RGB_INTENSITY_MAX
+        rgb_vals = colorsys.hsv_to_rgb(self.hue, self.saturation, self.value)
+        return tuple( val * max_val for val in rgb_vals)
 
     def get_state(self):
         interface_fade_speed = (self.fade_speed - self.fade_speed_range[0]) / (self.fade_speed_range[1] - self.fade_speed_range[0]) 
-        return {'hue': self.hue, 'saturation': self.saturation, 'value':self.value, 'mode': self.mode, 'is_asleep':self.is_asleep, 'fade_speed' : interface_fade_speed}
+        return {'hue': self.hue, 'saturation': self.saturation, 
+                'value':self.value, 'mode': self.mode, 
+                'is_asleep':self.is_asleep, 'fade_speed' : interface_fade_speed}
 
     def turn_off_lights(self):
         self.set_color('BLACK')
@@ -110,11 +120,16 @@ class HSVVisualizer(Visualizer):
         self.saturation = 1
         self.value = 1
         try:
-            self.hue = HSVVisualizer.COLOR_TABLE[color]
+            self.hue = HSVVisualizer.color_table[color]
         except: 
             self.saturation = old_sat
             self.value = old_val  
         self._bounds_check()
+
+    def toggle_music_visualization(self):
+        self.visualize_music = not self.visualize_music
+        if not self.visualize_music:
+            self.set_color(self.static_color)
 
     # depreciated 
     # TODO: Remove
@@ -126,11 +141,6 @@ class HSVVisualizer(Visualizer):
             self.bass_treble_ratio -= incr
         self.bass_treble_ratio = min(1, self.bass_treble_ratio)
         self.bass_treble_ratio = max(0, self.bass_treble_ratio)
-        
-    def toggle_music_visualization(self):
-        self.visualize_music = not self.visualize_music
-        if not self.visualize_music:
-            self.set_color(self.static_color)
 
     def visualize(self, raw_data, rate):
         # Mode is visualize music
@@ -171,12 +181,12 @@ class HSVVisualizer(Visualizer):
         self._bounds_check()
 
     def _bounds_check(self):
-        self.hue = self.hue + 1 if self.hue < 0 else self.hue 
-        self.saturation = min(self.saturation, 1)
-        self.value = min(self.value, 1)
+        self.hue %= 1.0
 
-        self.hue = self.hue - 1 if self.hue > 1 else self.hue
+        self.saturation = min(self.saturation, 1)
         self.saturation = max(self.saturation, 0)
+
+        self.value = min(self.value, 1)
         self.value = max(self.value, 0)
         
     def _find_local_maxes(self, lst,max_threshold=0):
@@ -194,7 +204,7 @@ class HSVVisualizer(Visualizer):
         return max_indices
 
     def _is_hit(self, freq_amps, local_maxima, hit_coeff):
-        sd = list(self.state_deque)[-1 * HSVVisualizer.HISTORY_SAMPLE:]
+        sd = list(self.state_deque)[-1 * HISTORY_SAMPLE_SIZE:]
 
         if len(sd) >= 1: 
             for i in local_maxima:
@@ -205,7 +215,7 @@ class HSVVisualizer(Visualizer):
 
     def _num_hits_in_hist(self, val=False):
         count = 0
-        sd = list(self.state_deque)[-1 * HSVVisualizer.HISTORY_SAMPLE:]
+        sd = list(self.state_deque)[-1 * HISTORY_SAMPLE_SIZE:]
         
         for state in sd:
             if state.is_hit and not val:
@@ -213,6 +223,7 @@ class HSVVisualizer(Visualizer):
         return count
     
     def _avg_last_n_states(self, n, amp_size):
+        # a list of the last n elements in the deque
         sd = list(self.state_deque)[(-1 * n):]
         summed_amps = [0] * amp_size 
         for state in sd:
@@ -234,42 +245,47 @@ class HSVVisualizer(Visualizer):
             self.visualize_music = True
     
     def _update_colors(self, freq_amps):
-        hue_avgamount = 40
-        hue_scale = 0.035
-
-        value_avgamount = 10
-        value_pull = 0.2 #0.4 is a good number
-
         local_maxima = self._find_local_maxes(freq_amps)
-
         is_hit = self._is_hit(freq_amps, local_maxima, 6)
+
+        #print "h c", self.hue_chaser
+        if len(self.state_deque) > 5:
+            # smoothed_amps = self._avg_last_n_states(5, len(freq_amps))
+            # max_amp = max(smoothed_amps)
+            # print "thing", thing
+            # # Code for hue pusher taken from Sitar Harel and his LEDControl program
+            # h_chaser_diff = (avg_max - self.hue_chaser) / HUE_AVG_AMOUNT
+            # print h_chaser_diff, avg_max
+            if is_hit and self._num_hits_in_hist() < 1:
+                self.hue_chaser = next(self.hues)
+                print self.hue_chaser
+                
+            if self.visualize_music:
+                #print "diff", (self.hue_chaser - self.hue)
+                self.hue += (self.hue_chaser - self.hue) * HUE_CHASER_MULTIPLIER
+
         if is_hit:
             shift = (0.2 *(1/ (1+ self._num_hits_in_hist()))) 
             self.value_chaser += shift
             self.value_chaser += shift
-            self.hue_chaser += shift
-        
-        if len(self.state_deque) > 5:
-            avg_amps = self._avg_last_n_states(5, len(freq_amps))
-            avg_max = max(enumerate(avg_amps), key=lambda x: x[1])[0]
-            # Code for hue pusher taken from Sitar Harel and his LEDControl program
-            h_chaser_diff = (avg_max - self.hue_chaser) / hue_avgamount
+            if(self._num_hits_in_hist() < 2):
+                pass
+                #hue_shift = (shift * float(np.sign(h_chaser_diff))) * HUE_SHIFT_MULTIPLIER
+                #print hue_shift
+                #self.hue_chaser += hue_shift
+                #print "hue chaser", self.hue_chaser
 
-            self.hue_chaser += h_chaser_diff
-            if self.visualize_music:
-                self.hue = self.hue + h_chaser_diff * hue_scale
-
+        self.hue_chaser %= 1.0
         mean_amp = sum(freq_amps)/len(freq_amps)
 
 
-        value_chaser_diff = (mean_amp - self.value_chaser) / value_avgamount
+        value_chaser_diff = (mean_amp - self.value_chaser) / VALUE_AVG_AMOUNT
 
         self.value_chaser += value_chaser_diff
-        self._update_value_min_and_max(value_pull)
+        self._update_value_min_and_max(VALUE_PULL)
         val = (self.value_chaser - self.value_min)/ (self.value_max - self.value_min)
         if self.visualize_music:
             self.value =  val
-        #print ( self.value, is_hit) 
         self._bounds_check()
         return is_hit, local_maxima
     
