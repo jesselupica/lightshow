@@ -81,7 +81,7 @@ export default class LoginScreen extends React.Component {
                 <div style={{height: 30}}/>
                 <div style={buttonContainerStyle}>
                     <div style={{width: '45%', }}>
-                        <RaisedButton label="Login" primary={true}  fullWidth={true} style={style} />
+                        <RaisedButton label="Login" onClick={this.props.loginClick} primary={true}  fullWidth={true} style={style} />
                     </div>
                     <div style={{width: '45%', }}>
                         <RaisedButton label="Sign up" onClick={this.props.signupClick} primary={true} fullWidth={true} style={style} />
