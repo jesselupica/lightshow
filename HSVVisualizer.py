@@ -9,7 +9,7 @@ import numpy as np
 State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'avg_amp'])
 
 HUE_AVG_AMOUNT = 40
-HUE_CHASER_MULTIPLIER = 0.03
+HUE_CHASER_MULTIPLIER = 0.01
 HUE_SHIFT_MULTIPLIER = 2
 
 VALUE_AVG_AMOUNT = 10

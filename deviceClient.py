@@ -2,6 +2,7 @@ import json
 import socket
 import uuid
 from time import sleep 
+import os
 
 #SERVER_IP = "104.131.78.170"
 SERVER_DOMAIN = 'jesselupica.com'
@@ -22,7 +23,8 @@ class Client(object):
                         'sat' : self.set_sat,
                         'brightness' : self.set_brightness,
                         'mode' : self.set_mode,
-                        'fade_speed' : self.set_fade_speed}
+                        'fade_speed' : self.set_fade_speed,
+                        'git pull' : self.pull_from_repo}
         self.register_device()
 
     def register_device(self):
@@ -127,6 +129,14 @@ class Client(object):
 
     def set_fade_speed(self, speed):
         self.vis.set_fade_speed(float(speed))
+
+    def pull_from_repo(self):
+        os.system('git stash && git checkout master && git pull')
+        for i in range(5):
+            self.vis.turn_off_lights()
+            time.sleep(0.5)
+            self.vis.turn_on_fade()
+            time.sleep(0.5)
 
 
 if __name__ == '__main__':
