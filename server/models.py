@@ -6,8 +6,9 @@ class FrontendClient:
         self.username = username
         self.hashed_pass = hash(password)
         # three levels: 0 - can only observe, 1 - can control lights, 2 - admin
-        self.priviledge_level = priv
+        self.privilege_level = priv
         self.is_guest = is_guest
+        self.auth_token = auth_token
 
     def check_pass(self, password):
         return self.hashed_pass == hash(password)
@@ -16,7 +17,8 @@ class FrontendClient:
         return {"username" : self.username, 
                 "is_admin" : self.is_admin, 
                 "hashed_pass" : self.hashed_pass, 
-                "priviledge_level" : self.priviledge_level }
+                "privilege_level" : self.privilege_level,
+                "auth_token" :  self.auth_token}
         
 
 class Device(object):

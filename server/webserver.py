@@ -55,7 +55,7 @@ def load_client_credentials():
                 cli = FrontendClient(client_json["auth_token"], 
                     client_json["username"], 
                     client_json["hashed_pass"], 
-                    priv = client_json["priviledge_level"])
+                    priv = client_json["privilege_level"])
                 clients[client_json["auth_token"]] = cli
 
 def save_registered_devices():
@@ -164,7 +164,7 @@ def show_user_profile(device_id):
     # may have to change with auth
     if request.method == 'POST':
         data = json.loads(request.data)
-        data["command"]["client_priviledge_level"] = clients[data["auth_token"]].priviledge_level
+        data["command"]["client_privilege_level"] = clients[data["auth_token"]].priviledge_level
         print data["command"]
         if device_id in device_index:
             device_index[device_id].messages.append(data["command"])
