@@ -90,7 +90,6 @@ def run_server():
         readable, writable, exceptional = select.select(inputs, outputs, inputs)
         for s in readable:
             if s is server:
-                print "hello friend"
                 add_input_connection(s)
             else:
                 if s not in outputs:
@@ -131,7 +130,6 @@ def handle_request(s):
             if "registration" in client_message:
                 register_device(s, client_message)
             if "state" in client_message:
-                print "we're here", client_message
                 device_id = client_message['id']
                 device_index[device_id].state = client_message['state']
                     
@@ -205,10 +203,12 @@ def rename_device(device_id):
 def get_devices():
     return json.dumps([d.to_json() for d in registered_devices])
 
-@app.route('/')
-@app.route('/<path:path>')
-def index():
-    print "hello friends"
+
+@app.route('/', methods=['GET'])
+@app.route('/lights')
+@app.route('/login')
+@app.route('/signup')
+def path_index():
     return render_template('index.html')
 
 @app.route('/static/<path:path>') # serve whatever the client requested in the static folder

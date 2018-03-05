@@ -19,6 +19,7 @@ import TextField from 'material-ui/TextField';
 import MoreVertIcon from 'material-ui/svg-icons/navigation/more-vert';
 import {grey400} from 'material-ui/styles/colors';
 import Subheader from 'material-ui/Subheader';
+import Snackbar from 'material-ui/Snackbar';
 import {blue300, blue900, red300, red900, green300, green900, purple300, purple900, pink300, pink900, teal300, teal900, orange300, orange900, pink200} from 'material-ui/styles/colors';
 import axios from 'axios';
 
@@ -109,8 +110,6 @@ class ColorChipWrapper extends React.Component {
 }
 
 class ControlSlider extends Component {
-
-
   render() {
     return (
       <div>
@@ -121,16 +120,18 @@ class ControlSlider extends Component {
   }
 }
 
-function removeDevice(device_id) {
+function removeDevice(device_id, auth_token) {
   var url = webserver + "device/remove/" + device_id
-    axios.post(url).then( (res) => {
+    axios.post(url, {
+      auth_token : auth_token
+    }).then( (res) => {
       window.location.reload();
     });
 }
 
 
 const iconButtonElement = (
-    <IconButton
+  <IconButton
     touch={true}
     tooltip="more"
     tooltipPosition="bottom-left"
@@ -144,10 +145,10 @@ const iconButtonElement = (
 function rightIconMenu(props) {
   return (
     <IconMenu iconButtonElement={<IconButton><MoreVertIcon /></IconButton>}
-          onChange={this.handleChangeSingle}
-          value={this.state.valueSingle}
-        >      
-        <MenuItem onClick={() => removeDevice(props.device_id)} primaryText={"Remove Device"}/>
+              onChange={this.handleChangeSingle}
+              value={this.state.valueSingle}
+    >      
+      <MenuItem onClick={() => removeDevice(props.device_id)} primaryText={"Remove Device"}/>
     </IconMenu>
   );
 };
@@ -158,6 +159,19 @@ class DeviceInfoHeader extends React.Component {
     open: false,
     nickname: '',
     renamed: false,
+    snackbar_open: false,
+  };
+
+  handlePermissionDeniedSnackbar = () => {
+    this.setState({
+      snackbar_open: true,
+    });
+  };
+
+  handleSnackbarRequestClose = () => {
+    this.setState({
+      snackbar_open: false,
+    });
   };
 
   handleOpenRename = () => {
@@ -172,9 +186,14 @@ class DeviceInfoHeader extends React.Component {
   handleCloseRenameSubmit = (device_id) => {
     var url = webserver + "device/rename/" + device_id
     axios.post(url, {
-        nickname: this.state.nickname
+        nickname: this.state.nickname,
+        auth_token: this.props.auth.auth_token
+      }).then( res => {
+        this.setState({renamed: true});
+      }).catch( error => {
+        this.handlePermissionDeniedSnackbar();
       });
-    this.setState({open: false, renamed: true});
+    this.setState({open: false});
   };
 
   updateNickname = (event, newObject) => {
@@ -210,7 +229,7 @@ class DeviceInfoHeader extends React.Component {
             onChange={this.handleChangeSingle}
             value={this.state.valueSingle}
           >      
-            <MenuItem onClick={() => removeDevice(this.props.device_id)} primaryText={"Remove Device"}/>
+            <MenuItem onClick={() => removeDevice(this.props.device_id, this.props.auth.auth_token)} primaryText={"Remove Device"}/>
           </IconMenu>
         }
         primaryText={this.state.renamed ? this.state.nickname : this.props.nickname}
@@ -233,6 +252,12 @@ class DeviceInfoHeader extends React.Component {
         onChange={this.updateNickname}
       /><br />
     </Dialog>
+    <Snackbar
+          open={this.state.snackbar_open}
+          message="Sorry, you don't have permission to do that"
+          autoHideDuration={4000}
+          onRequestClose={this.handleSnackbarRequestClose}
+        />
     </div>)
     }
 }
@@ -279,7 +304,8 @@ class LightModeTabs extends React.Component {
     }
 
     axios.post("device/" + this.state.device.id, {
-        command: {function: 'mode', args: [tab.props.value, mode_args]}
+        command: {function: 'mode', args: [tab.props.value, mode_args]},
+        auth_token: this.props.auth.auth_token
       }).then( () => {
         if (tab.props.value == 'static') {
           axios.get("device/" + this.state.device.id).then(res => {
@@ -297,7 +323,8 @@ class LightModeTabs extends React.Component {
       device: this.state.device
     });
     axios.post("device/" + this.state.device.id, {
-        command: {function: 'brightness', args: [this.state.device.state.value]}
+        command: {function: 'brightness', args: [this.state.device.state.value]},
+        auth_token: this.props.auth.auth_token
       })
   }
 
@@ -307,7 +334,8 @@ class LightModeTabs extends React.Component {
       device: this.state.device
     });
     axios.post("device/" + this.state.device.id, {
-        command: {function: 'sat', args: [this.state.device.state.saturation]}
+        command: {function: 'sat', args: [this.state.device.state.saturation]},
+        auth_token: this.props.auth.auth_token
       })  
   }
 
@@ -317,13 +345,15 @@ class LightModeTabs extends React.Component {
       device: this.state.device
     });
     axios.post("device/" + this.state.device.id, {
-        command: {function: 'hue', args: [this.state.device.state.hue]}
+        command: {function: 'hue', args: [this.state.device.state.hue]},
+        auth_token: this.props.auth.auth_token
       })  
   }
 
   handleSetStaticColor = (color) => {
     axios.post("device/" + this.state.device.id, {
-        command: {function: 'static color', args: [color]}
+        command: {function: 'static color', args: [color]},
+        auth_token: this.props.auth.auth_token
       }).then( () => {
           axios.get("device/" + this.state.device.id).then(res => {
             const device = res.data
@@ -339,7 +369,8 @@ class LightModeTabs extends React.Component {
       device: this.state.device
     });
     axios.post("device/" + this.state.device.id, {
-        command: {function: 'fade_speed', args: [this.state.device.state.fade_speed]}
+        command: {function: 'fade_speed', args: [this.state.device.state.fade_speed]},
+        auth_token: this.props.auth.auth_token
       })  
   }
 
@@ -383,9 +414,9 @@ function LightSettingsCard(props) {
     var displayed_name = props.device.nickname !== "" ? props.device.nickname : props.device.id
     return (
         <Card style={cardsStyle}>
-            <DeviceInfoHeader nickname={displayed_name} device_id={props.device.id} deviceType="Light Visualizer"/>
+            <DeviceInfoHeader nickname={displayed_name} device_id={props.device.id} auth={props.auth} deviceType="Light Visualizer"/>
             <Divider/>
-            <LightModeTabs device={props.device}/>
+            <LightModeTabs device={props.device} auth={props.auth}/>
             </Card>
         )
 }
@@ -485,7 +516,7 @@ export default class CardStream extends Component {
         <ul style={list_padding}>
           {this.state.devices.map(device =>
             <li key={device.id} style={cardContainerStyle}>
-              <LightSettingsCard device={device}/>
+              <LightSettingsCard device={device} auth={this.props.auth}/>
             </li>
           )}
         </ul>
