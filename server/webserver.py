@@ -31,6 +31,7 @@ registration_file = "registered_devices.json"
 client_file = "clients.json"
 
 clients = OrderedDict()
+ADMIN_PRIV_LVL = 2
 
 ## TODO: Define a get state method
 
@@ -175,31 +176,39 @@ def show_user_profile(device_id):
 @app.route('/device/remove/<device_id>', methods=['POST'])
 def remove_device(device_id):
     if request.method == 'POST':
-        try:
-            registered_devices.remove(device_index[device_id])
-            del(device_index[device_id])
-        except:
-            print registered_devices
-        remove_device_from_registration_list(device_id)
-        save_registered_devices()
-        return 200
+        data = json.loads(request.data)
+        if clients[data["auth_token"]].is_admin:
+            try:
+                registered_devices.remove(device_index[device_id])
+                del(device_index[device_id])
+            except:
+                print registered_devices
+            remove_device_from_registration_list(device_id)
+            save_registered_devices()
+            return 200
+        else:
+            return 403
 
     
 @app.route('/device/rename/<device_id>', methods=['POST'])
 def rename_device(device_id):
     if request.method == 'POST':
         data = json.loads(request.data)
-        device_index[device_id].nickname = data['nickname']
-        save_registered_devices()
-        return 200
+        if clients[data["auth_token"]].is_admin:
+            device_index[device_id].nickname = data['nickname']
+            save_registered_devices()
+            return 200
+        else: 
+            return 403
         
 @app.route("/devices")
 def get_devices():
     return json.dumps([d.to_json() for d in registered_devices])
 
-@app.route('/', defaults={'path': ''})
+@app.route('/')
 @app.route('/<path:path>')
 def index():
+    print "hello friends"
     return render_template('index.html')
 
 @app.route('/static/<path:path>') # serve whatever the client requested in the static folder

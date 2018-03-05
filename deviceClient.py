@@ -16,16 +16,18 @@ class Client(object):
         self.server_port = server_port
         self.registration = None
         self.vis = visualizer
-        self.commands = {'hue' : self.set_hue, 
-                        'static color' : self.set_static_color,
-                        'toggle visualizer' : self.toggle_visualizer, 
-                        'on/off' : self.toggle_lights,
-                        'fade' : self.toggle_fade,
-                        'sat' : self.set_sat,
-                        'brightness' : self.set_brightness,
-                        'mode' : self.set_mode,
-                        'fade_speed' : self.set_fade_speed,
-                        'git pull' : self.pull_from_repo}
+        # value is a tuple of the function and privilege level needed to 
+        # run the function
+        self.commands = {'hue' : (self.set_hue, 1), 
+                        'static color' : (self.set_static_color, 1),
+                        'toggle visualizer' : (self.toggle_visualizer, 1), 
+                        'on/off' : (self.toggle_lights, 1),
+                        'fade' : (self.toggle_fade, 1),
+                        'sat' : (self.set_sat,1),
+                        'brightness' : (self.set_brightness, 1),
+                        'mode' : (self.set_mode, 1),
+                        'fade_speed' : (self.set_fade_speed, 1),
+                        'git pull' : (self.pull_from_repo, 2)}
         self.register_device()
 
     def register_device(self):
@@ -77,7 +79,9 @@ class Client(object):
     def handle_req(self, req):
         command = req["function"]
         args = req["args"]
-        self.commands[command](*args)
+        privilege_lvl = req["client_privilege_level"]
+        if self.commands[command][1] <= privilege_lvl:
+            self.commands[command][0](*args)
 
     def send_state(self, sock):
         mess = {"id" : self.registration["registration"], "state" : self.vis.get_state()}
