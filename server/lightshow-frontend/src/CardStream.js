@@ -436,7 +436,21 @@ class AdminHeader extends React.Component {
     }
 }
 
+class AdminPrivilidgeListItem extends React.Component {
+  render() {
+    return(
+      <ListItem key={index} primaryText={user} leftAvatar={<Avatar backgroundColor='white' src={this.ios_logo}/>}/>
+    )
+  } 
+}
+
 class AdminPrivilidgeList extends React.Component {
+
+  ios_logo = "https://png.icons8.com/color/500/000000/ios-logo.png"
+  android_logo = "https://upload.wikimedia.org/wikipedia/commons/d/d7/Android_robot.svg"
+  osx_logo = "https://upload.wikimedia.org/wikipedia/commons/b/bb/OS_X_El_Capitan_logo.svg"
+  windows_logo = "https://upload.wikimedia.org/wikipedia/commons/5/5f/Windows_logo_-_2012.svg"
+  linux_logo = "https://assets.ubuntu.com/v1/29985a98-ubuntu-logo32.png"
 
   constructor(props) {
     super(props);
@@ -458,14 +472,13 @@ class AdminPrivilidgeList extends React.Component {
       });
   }
 
+
   render() {
     return (
       <List>
         <Subheader>Active Users</Subheader>
-          {this.state.users.map(user =>
-            <li key={user.id}>
-              <ListItem device={user}/>
-            </li>
+          {this.state.users.map((user, index) =>
+            <ListItem key={index} primaryText={user} leftAvatar={<Avatar backgroundColor='white' src={this.ios_logo}/>}/>
           )}
       </List>
     )
@@ -534,7 +547,6 @@ export default class CardStream extends Component {
     // So im lazy and making this a post
     axios.post(admin_check, {
       auth_token: this.props.auth.auth_token,
-      hello: "test"
     }).then(res => {
         this.setState({ is_admin : true });
       }).catch( error => {
