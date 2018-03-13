@@ -269,10 +269,10 @@ def auth_verify():
 
 @app.route('/admin/users', methods=['GET'])
 def get_users():
-    print "THE form", request.form
-    data = json.loads(request.headers['params'])
-    if clients[data["auth_token"]].is_admin:
-        clis = [c.username for c in clients.items()]
+    print "THE form", request.args
+    if clients[request.args["auth_token"]].is_admin:
+        clis = [c.username for c in clients.values()]
+        print clis
         return json.dumps(clis), 200
     else:
         return '', 403
