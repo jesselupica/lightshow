@@ -5,6 +5,7 @@ import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'mat
 import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
 import axios from 'axios';
+import md5 from 'md5';
 
 const styles = {
   headline: {
@@ -68,15 +69,6 @@ const style2 = {
   margin: '12px 0px',
 };
 
-
-function hash(s) {
-  var h = 0, l = s.length, i = 0;
-  if ( l > 0 )
-    while (i < l)
-      h = (h << 5) - h + s.charCodeAt(i++) | 0;
-  return h;
-};
-
 export default class Signup extends React.Component {
   constructor(props) {
     super(props)
@@ -84,7 +76,9 @@ export default class Signup extends React.Component {
 
     this.state = {
       username: '',
-      password: ''
+      password: '',
+      usernameErrorMessage: '',
+      passErrorMessage: '',
     }
   }
 
@@ -96,7 +90,6 @@ export default class Signup extends React.Component {
   update_username = (event, newValue) => {
     console.log(newValue)
     this.setState({username: newValue})
-
   }
 
   authenticate_user = () => {
@@ -104,7 +97,7 @@ export default class Signup extends React.Component {
     const url = 'http://jesselupica.com/auth/init';
     axios.post(url, {
         username: this.state.username,
-        password: hash(this.state.password),
+        password: md5(this.state.password),
       }).then( (res) => {
           if(res.status == 200 ) {
             this.props.auth.isAuthenticated = true
@@ -112,10 +105,16 @@ export default class Signup extends React.Component {
             console.log(this.props.history)
             this.props.history.push("/lights");
           } else {
+            console.log("why u like dis?")
             this.props.auth.isAuthenticated = false
+            this.setState({passErrorMessage: 'The username or password you entered is not valid'})
+            this.setState({usernameErrorMessage: ' '})
           }
         }).catch( (res) => {
+          console.log("why u like dis 2?")
           console.log("error")
+          this.setState({passErrorMessage: 'The username or password you entered is not valid'})
+          this.setState({usernameErrorMessage: ' '})
         });
   } 
 
@@ -131,8 +130,8 @@ export default class Signup extends React.Component {
             <Card style={cardsStyle}>
                 <CardTitle title="Create Account" titleStyle={{'fontFamily': 'HelveticaNeue-Light','fontSize': 30, textAlign: 'center', marginTop: '30px', fontWeight: 20}}/>
                 <div style={buttonContainerStyle}>
-                    <TextField floatingLabelText="Username" fullWidth={true} style={style1} onChange={this.update_username}/>
-                    <TextField floatingLabelText="Password" type="password" fullWidth={true} style={style2} onChange={this.update_pass}/>
+                    <TextField floatingLabelText="Username" fullWidth={true} style={style1} onChange={this.update_username} errorText={this.state.usernameErrorMessage}/>
+                    <TextField floatingLabelText="Password" type="password" fullWidth={true} style={style2} onChange={this.update_pass} errorText={this.state.passErrorMessage}/>
                     <RaisedButton onClick={this.authenticate_user} label={"Sign up"} primary={true} fullWidth={true}  style={style2} />
                 </div>
               <div style={{height: '50px'}}/>

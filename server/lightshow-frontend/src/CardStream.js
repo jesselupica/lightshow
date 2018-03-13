@@ -254,7 +254,7 @@ class DeviceInfoHeader extends React.Component {
     </Dialog>
     <Snackbar
           open={this.state.snackbar_open}
-          message="Sorry, you don't have permission to do that"
+          message="Sorry, you don't have permission to rename the device"
           autoHideDuration={4000}
           onRequestClose={this.handleSnackbarRequestClose}
         />
@@ -338,7 +338,6 @@ class LightModeTabs extends React.Component {
         auth_token: this.props.auth.auth_token
       })  
   }
-
   handleHueChange = (event, value) => {
     this.state.device.state.hue = value
     this.setState({
@@ -416,7 +415,7 @@ function LightSettingsCard(props) {
         <Card style={cardsStyle}>
             <DeviceInfoHeader nickname={displayed_name} device_id={props.device.id} auth={props.auth} deviceType="Light Visualizer"/>
             <Divider/>
-            <LightModeTabs device={props.device} auth={props.auth}/>
+            <LightModeTabs device={props.device} auth={props.auth} accessDenied={props.accessDenied}/>
             </Card>
         )
 }
@@ -450,7 +449,9 @@ class AdminPrivilidgeList extends React.Component {
   componentDidMount() {
     var url = webserver + "admin/users" 
     axios.get(url, {
-      auth_token: this.props.auth.auth_token
+      params: {
+        auth_token: this.props.auth.auth_token
+      }
     }).then(res => {
         const users = res.data
         this.setState({ users });
@@ -472,7 +473,9 @@ class AdminPrivilidgeList extends React.Component {
 }
 
 function AdminCard(props) {
-  return(<div style={cardContainerStyle}>
+  if(props.is_admin) {
+    return(
+    <div style={cardContainerStyle}>
       <Card style={cardsStyle}>
           <AdminHeader deviceType="Light Visualizer"/>
           <Divider/>
@@ -480,6 +483,11 @@ function AdminCard(props) {
       </Card>
     </div>
     )
+  }
+  else {
+    return (<div></div>)
+  }
+  
 }
 
 export default class CardStream extends Component {
@@ -495,9 +503,23 @@ export default class CardStream extends Component {
     super(props);
 
     this.state = {
-      devices: []
+      devices: [],
+      is_admin: false,
+      snackbar_open: false
     };
   }
+
+  handlePermissionDeniedSnackbar = () => {
+    this.setState({
+      snackbar_open: true,
+    });
+  };
+
+  handleSnackbarRequestClose = () => {
+    this.setState({
+      snackbar_open: false,
+    });
+  };
 
   componentDidMount() {
     var url = webserver + "devices"
@@ -506,20 +528,39 @@ export default class CardStream extends Component {
         const devices = res.data
         this.setState({ devices });
       });
+
+    var admin_check = webserver + 'is_admin'
+    // for some reason get requests don't transmit the data. 
+    // So im lazy and making this a post
+    axios.post(admin_check, {
+      auth_token: this.props.auth.auth_token,
+      hello: "test"
+    }).then(res => {
+        this.setState({ is_admin : true });
+      }).catch( error => {
+        console.log("we tried to get is admin")
+      });
+
   }
 
   render() {
     console.log(this.props.auth)
     return (
       <div>
-        <AdminCard auth={this.props.auth}/>
+        <AdminCard auth={this.props.auth} is_admin={this.state.is_admin}/>
         <ul style={list_padding}>
           {this.state.devices.map(device =>
             <li key={device.id} style={cardContainerStyle}>
-              <LightSettingsCard device={device} auth={this.props.auth}/>
+              <LightSettingsCard device={device} auth={this.props.auth} accessDenied={this.handlePermissionDeniedSnackbar}/>
             </li>
           )}
         </ul>
+        <Snackbar
+          open={this.state.snackbar_open}
+          message="Sorry, you don't have permission to perform this action"
+          autoHideDuration={4000}
+          onRequestClose={this.handleSnackbarRequestClose}
+        />
       </div>
     );    
   }
