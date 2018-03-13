@@ -167,6 +167,25 @@ def register_device(socket_conn, client_message):
     conn_to_device[socket_conn] = dev
     save_registered_devices()
 
+@app.route('/', methods=['GET'])
+@app.route('/lights')
+@app.route('/login')
+@app.route('/signup')
+def path_index():
+    return render_template('index.html')
+
+@app.route('/static/<path:path>') # serve whatever the client requested in the static folder
+def serve_static(path):
+    return send_from_directory('lightshow-frontend/build/static', path)
+
+@app.route('/service-worker.js')
+def serve_worker():
+    return send_from_directory('lightshow-frontend/build/', 'service-worker.js')
+        
+@app.route('/favicon.ico')
+def serve_fav():
+    return send_from_directory('lightshow-frontend/build/', 'favicon.ico')
+
 @app.route('/device/<device_id>', methods=['POST', 'GET'])
 def show_user_profile(device_id):
     # may have to change with auth
@@ -195,16 +214,6 @@ def remove_device(device_id):
             return "", 200
         else:
             return "", 403
-
-@app.route('/is_admin', methods=['POST'])
-def is_admin():
-    print "request data", request.data
-    data = json.loads(request.data)
-    print clients[data["auth_token"]].is_admin, data["auth_token"]
-    if clients[data["auth_token"]].is_admin:
-        return '', 200
-    else:
-        return '', 403
     
 @app.route('/device/rename/<device_id>', methods=['POST'])
 def rename_device(device_id):
@@ -221,26 +230,6 @@ def rename_device(device_id):
 @app.route("/devices")
 def get_devices():
     return json.dumps([d.to_json() for d in registered_devices])
-
-
-@app.route('/', methods=['GET'])
-@app.route('/lights')
-@app.route('/login')
-@app.route('/signup')
-def path_index():
-    return render_template('index.html')
-
-@app.route('/static/<path:path>') # serve whatever the client requested in the static folder
-def serve_static(path):
-    return send_from_directory('lightshow-frontend/build/static', path)
-
-@app.route('/service-worker.js')
-def serve_worker():
-    return send_from_directory('lightshow-frontend/build/', 'service-worker.js')
-        
-@app.route('/favicon.ico')
-def serve_fav():
-    return send_from_directory('lightshow-frontend/build/', 'favicon.ico')
 
 @app.route('/auth/init', methods=['POST'])
 def auth_init():
@@ -285,6 +274,16 @@ def get_users():
     if clients[data["auth_token"]].is_admin:
         clis = [c.username for c in clients.items()]
         return json.dumps(clis), 200
+    else:
+        return '', 403
+
+@app.route('/is_admin', methods=['POST'])
+def is_admin():
+    print "request data", request.data
+    data = json.loads(request.data)
+    print clients[data["auth_token"]].is_admin, data["auth_token"]
+    if clients[data["auth_token"]].is_admin:
+        return '', 200
     else:
         return '', 403
     
