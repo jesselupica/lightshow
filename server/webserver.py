@@ -10,7 +10,7 @@ from models import Device, FrontendClient
 from flask import Flask, request, render_template, send_from_directory
 from threading import Thread
 from flask_cors import CORS
-
+import hashlib
 
 app = Flask(__name__, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
 CORS(app)
@@ -53,10 +53,11 @@ def load_client_credentials():
         with open(client_file, mode="r+") as f:
             client_data = json.loads(f.read())
             for client_json in client_data:
+                print client_json
                 cli = FrontendClient(client_json["auth_token"], 
                     client_json["username"], 
                     client_json["hashed_pass"], 
-                    priv = client_json["privilege_level"])
+                                     priv = client_json["privilege_level"], is_admin=client_json["is_admin"], pass_already_hashed=True)
                 clients[client_json["auth_token"]] = cli
 
 def save_registered_devices():
@@ -73,15 +74,23 @@ def clear_guests():
 def create_guest_user():
     guest_token = str(uuid.uuid1())
     # create this so that people can't log in as guests i give permissions to
-    username = hash(str(time.time()))
-    password = hash(str(time.time() + 1))
-    clients[guest_token] = FrontendClient(guest_token, username, password, is_guest=True)
+    usr_m = hashlib.sha256()
+    pass_m = hashlib.sha256()
+    username = usr_m.update(str(time.time()))
+    password = pass_m.update(str(time.time() + 1))
+    clients[guest_token] = FrontendClient(guest_token, username.digest(), password.digest(), is_guest=True)
     return guest_token
 
 def create_user(username, password):
     auth_token = str(uuid.uuid1())
     clients[auth_token] = FrontendClient(auth_token, username, password)
     return auth_token
+
+def user_already_exists(username):
+    for cli in clients.values():
+        if cli.username == username:
+            return True
+    return False
 
 def run_server():
     load_registered_devices()
@@ -183,21 +192,31 @@ def remove_device(device_id):
                 print registered_devices
             remove_device_from_registration_list(device_id)
             save_registered_devices()
-            return 200
+            return "", 200
         else:
-            return 403
+            return "", 403
 
+@app.route('/is_admin', methods=['POST'])
+def is_admin():
+    print "request data", request.data
+    data = json.loads(request.data)
+    print clients[data["auth_token"]].is_admin, data["auth_token"]
+    if clients[data["auth_token"]].is_admin:
+        return '', 200
+    else:
+        return '', 403
     
 @app.route('/device/rename/<device_id>', methods=['POST'])
 def rename_device(device_id):
     if request.method == 'POST':
         data = json.loads(request.data)
+        print data
         if clients[data["auth_token"]].is_admin:
             device_index[device_id].nickname = data['nickname']
             save_registered_devices()
-            return 200
+            return "", 200
         else: 
-            return 403
+            return "", 403
         
 @app.route("/devices")
 def get_devices():
@@ -227,9 +246,13 @@ def serve_fav():
 def auth_init():
     if request.method == 'POST':
         data = json.loads(request.data)
-        auth_token = create_user(data['username'], data['password'])
-        save_client_credentials()
-        return auth_token
+        if not user_already_exists(data['username']) and  not data['username'] == '' and not data['password'] == '':
+            auth_token = create_user(data['username'], data['password'])
+            save_client_credentials()
+            return auth_token, 200
+        else:
+            return "", 400
+    return "", 400
 
 @app.route('/auth/guest/init')
 def auth_guest_init():
@@ -243,13 +266,28 @@ def auth_verify():
         data = json.loads(request.data)
         for auth_token, cli in clients.items():
             if data["username"] == cli.username:
+                print data["password"], hashlib.sha256(data['password']).hexdigest()
+                print cli.hashed_pass
                 if cli.check_pass(data["password"]):
                     auth = auth_token
+                    found = True
                     break
         if found:
-            return auth
-    return 403
+            return auth, 200
+        else:
+            return '', 403
+    return '', 403
 
+@app.route('/admin/users', methods=['GET'])
+def get_users():
+    print "THE form", request.form
+    data = json.loads(request.headers['params'])
+    if clients[data["auth_token"]].is_admin:
+        clis = [c.username for c in clients.items()]
+        return json.dumps(clis), 200
+    else:
+        return '', 403
+    
 @app.errorhandler(500)
 def internal_server_error(e):
     print e

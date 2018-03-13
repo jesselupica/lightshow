@@ -1,17 +1,25 @@
 import json
+import hashlib
 
 class FrontendClient:
-    def __init__(self, auth_token, username, password, priv = 0, is_guest=False):
-        self.is_admin = False
+    def __init__(self, auth_token, username, password, priv = 0, is_admin=False, is_guest=False, pass_already_hashed=False):
+        self.is_admin = is_admin
         self.username = username
-        self.hashed_pass = hash(password)
+        if not pass_already_hashed:
+            pass_m = hashlib.sha256()
+            print password
+            pass_m.update(password)
+            self.hashed_pass = pass_m.hexdigest()
+        else:
+            self.hashed_pass = password
+        
         # three levels: 0 - can only observe, 1 - can control lights, 2 - admin
         self.privilege_level = priv
         self.is_guest = is_guest
         self.auth_token = auth_token
 
     def check_pass(self, password):
-        return self.hashed_pass == hash(password)
+        return self.hashed_pass == hashlib.sha256(password).hexdigest()
 
     def to_json(self):
         return {"username" : self.username, 
