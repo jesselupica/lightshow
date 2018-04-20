@@ -243,9 +243,17 @@ def auth_init():
             return "", 400
     return "", 400
 
-@app.route('/auth/guest/init')
+@app.route('/auth/guest/init', methods=['POST'])
 def auth_guest_init():
     return create_guest_user()
+
+@app.route('/auth/user/devicedata', methods=['POST'])
+def auth_get_device_data():
+    if request.method == 'POST':
+        data = json.loads(request.data)
+        if user_already_exists(data['username']) and clients[data['auth_token']].username == data['username']:
+            clients[data['auth_token']].device_features = data['device']
+        return '', 200
 
 @app.route('/auth/verify', methods=['POST'])
 def auth_verify():
@@ -269,9 +277,13 @@ def auth_verify():
 
 @app.route('/admin/users', methods=['GET'])
 def get_users():
-    print "THE form", request.form
     data = json.loads(request.headers['params'])
     if clients[data["auth_token"]].is_admin:
+
+        for cli in clients.values():
+            {'username' : cli.username, 
+            'device_info' : cli.device_features,
+            'privilege_level' : cli.privilege_level}
         clis = [c.username for c in clients.items()]
         return json.dumps(clis), 200
     else:

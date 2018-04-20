@@ -1,8 +1,12 @@
 import json
 import hashlib
+from collections import namedtuple
+
+ClientDevice = namedtuple('ClientDevice', ['os', 'device', 'time_since_last_req'])
 
 class FrontendClient:
-    def __init__(self, auth_token, username, password, priv = 0, is_admin=False, is_guest=False, pass_already_hashed=False):
+    def __init__(self, auth_token, username, password, 
+            priv = 0, is_admin=False, is_guest=False, pass_already_hashed=False, ):
         self.is_admin = is_admin
         self.username = username
         if not pass_already_hashed:
@@ -17,6 +21,7 @@ class FrontendClient:
         self.privilege_level = priv
         self.is_guest = is_guest
         self.auth_token = auth_token
+        self.device_features = ClientDevice()
 
     def check_pass(self, password):
         return self.hashed_pass == hashlib.sha256(password).hexdigest()

@@ -92,7 +92,7 @@ const userAuth = {
     else {
       var client = new ClientJS();
       var url = base_url + 'auth/guest/init'
-        axios.get(url, {
+        axios.post(url, {
           os: client.getOS(),
           browser: client.getBrowser()
         }).then( (res) => {

@@ -43,8 +43,6 @@ const buttonContainerStyle = {
   paddingLeft: 10,
 
   border: '0px'
-
-
 }
 
 const cardsStyle = {
