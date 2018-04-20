@@ -279,7 +279,6 @@ def auth_verify():
 def get_users():
     data = json.loads(request.headers['params'])
     if clients[data["auth_token"]].is_admin:
-
         for cli in clients.values():
             {'username' : cli.username, 
             'device_info' : cli.device_features,
