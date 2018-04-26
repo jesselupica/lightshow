@@ -7,7 +7,7 @@ import traceback
 import threading
 import deviceClient
 import pygame
-import analyzer
+import analyzer as analyzer_mod 
 from HSVVisualizer import HSVVisualizer
 from globalvars import light_visualizer
 import stream
@@ -33,7 +33,7 @@ if uname[1] == pi_name and uname[0] == 'Linux':
     pi = pigpio.pi()
     print(pi)
 else:
-    analyzer = analyzer.CircleAnalyzer(light_visualizer)
+    analyzer = analyzer_mod.CircleAnalyzer(light_visualizer)
 
 # The Pins. Use Broadcom numbers.
 RED_PIN   = 17

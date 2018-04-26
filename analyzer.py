@@ -37,7 +37,7 @@ class CircleAnalyzer:
         pygame.init()
         self.screen = pygame.display.set_mode([SIDE_LENGTH,SIDE_LENGTH])
         self.max_radius = SIDE_LENGTH/2
-        self.min_radius = SIDE_LENGTH/8
+        self.min_radius = 1
         self.screen.fill(black)
         pygame.display.set_caption("My program")
         pygame.display.flip()
