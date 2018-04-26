@@ -5,6 +5,8 @@ from itertools import cycle
 import colorsys
 import random
 import numpy as np
+import math
+from stream import Stream
 
 State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'avg_amp'])
 
@@ -17,6 +19,7 @@ VALUE_PULL = 0.30 #0.4 is a good number
 
 HISTORY_SIZE = 50
 HISTORY_SAMPLE_SIZE = 20
+HISTORY_DURATION = 2
 
 FREQS = [4186.01, 3951.07, 3729.31, 3520.00, 3322.44, 3135.96, 2959.96,
   2793.83, 2637.02, 2489.02, 2349.32, 2217.46, 2093.00, 1975.53, 1864.66,
@@ -31,39 +34,99 @@ FREQS = [4186.01, 3951.07, 3729.31, 3520.00, 3322.44, 3135.96, 2959.96,
   43.6536, 41.2035, 38.8909, 36.7081, 34.6479, 32.7032, 30.8677, 29.1353, 
   27.5000]
 
+# Enum
+class LightModes:
+    VisualizeMusic = 'VISUALIZE_MUSIC'
+    StaticColor = 'STATIC_COLOR'
+    Fade = 'FADE'
+    Asleep = 'ASLEEP'
+    Off = 'OFF'
+    CustomStaticColor = 'CUSTOM_STATIC_COLOR'
+
+class StreamAnalyzer:
+    def __init__(self, history_duration_s, stream_rate, stream_chunk_size):
+        self.stream_rate = stream_rate
+        max_len = history_duration_s * stream_rate / stream_chunk_size
+        self.state_history = deque([], maxlen=max_len)
+        self.freq_amp_history = deque([], maxlen=max_len)
+
+    def analyze(self, block):
+        amps = self.get_amplitude_at_frequency(block)
+        local_maxima = self.find_local_maxes(amps)
+        is_hit = self.is_hit(amps, local_maxima, 6)
+
+    def get_amplitude_at_frequency(self, aud_data, freqs=FREQS):
+        s1 = np.array(aud_data)
+        n = s1.size
+        p = np.fft.fft(s1) / float(n) # take the fourier transform 
+
+        magnitude = [math.sqrt(x.real**2 + x.imag**2) for x in p]
+        return [ magnitude[int(freq * n / self.stream_rate)] for freq in freqs ]
+
+    def num_hits_in_hist(self, val=False):
+        count = 0
+        sd = list(self.state_history)[-1 * HISTORY_SAMPLE_SIZE:]
+        
+        for state in sd:
+            if state.is_hit and not val:
+                count += 1
+        return count
+
+    def find_local_maxes(self, lst, max_threshold=0):
+        max_val = max(lst)
+        max_indices = []
+        incr = True
+        for i, (e1, e2) in enumerate(zip(lst, lst[1:])):
+            if incr and e1 > e2 and e1 > max_threshold * max_val:
+                max_indices.append(i)
+            # make sure we're not keeping track of marginal increases
+            if e2 > e1 + 1:
+                incr = True
+            else: 
+                incr = False
+        return max_indices
+
+    def is_hit(self, freq_amps, local_maxima, hit_coeff):
+        sd = list(self.state_history)[-1 * HISTORY_SAMPLE_SIZE:]
+
+        if len(sd) >= 1: 
+            for i in local_maxima:
+               avg = sum((d.spectrum[i] for d in sd))/len(sd)
+               if freq_amps[i] > hit_coeff * avg:
+                   return True
+        return False
+
 class HSVVisualizer(Visualizer):
     color_table = {'RED': 1, 'ORANGE':0.038888, 'GREEN': 0.3333, 'TEAL':0.5527777, 'BLUE': 0.66666, 'PURPLE': 0.783333, 'PINK':0.9444  }
-    LIGHT_MODES = ['VISUALIZE_MUSIC', 'STATIC_COLOR', 'FADE', 'ASLEEP', 'OFF', 'CUSTOM_STATIC_COLOR']
 
     TREBLE_BASS_DIVIDE = 30
     
-    def __init__(self, r, g, b):
+    def __init__(self, r, g, b, stream=None):
         self.hue = 1
         self.saturation = 1
         self.value = 1
-        self.state_deque = deque([], maxlen=HISTORY_SIZE)
+        
+        self.stream = stream
+        if not stream is None:
+            self.stream_analyzer = StreamAnalyzer(HISTORY_DURATION, stream.RATE, stream.CHUNK_SIZE)
         
         self.hue_chaser = 0
         self.hues = cycle(sorted(HSVVisualizer.color_table.values()))
         
         self.value_chaser = 0.5
-        
         self.value_max = 0.5
         self.value_min = 0.5
 
-        # initialize to music visualization 
-        self.mode = HSVVisualizer.LIGHT_MODES[0]
-        self.visualize_music = True
+        self.mode = LightModes.VisualizeMusic
         self.static_color = 'BLUE'
         self.fade_speed = 0.001
         self.fade_speed_range = 0.0001, 0.01
-        self.is_off = False
-        self.is_asleep = False
-        # 0: no subspectrum islated, 1: red isolated, 2: green isolated, 3: blue isolated
-        # Also this doesn't work... 
-        self.subspectrum = 0
 
         self.amps = []
+
+    def attach_stream(self, stream):
+        self.stream = stream
+        self.stream_analyzer = StreamAnalyzer(HISTORY_DURATION, stream.RATE, stream.CHUNK_SIZE)
 
         
     def tuple(self):
@@ -75,31 +138,22 @@ class HSVVisualizer(Visualizer):
         interface_fade_speed = (self.fade_speed - self.fade_speed_range[0]) / (self.fade_speed_range[1] - self.fade_speed_range[0]) 
         return {'hue': self.hue, 'saturation': self.saturation, 
                 'value':self.value, 'mode': self.mode, 
-                'is_asleep':self.is_asleep, 'fade_speed' : interface_fade_speed}
+                'is_asleep':self.mode == LightModes.Asleep, 'fade_speed' : interface_fade_speed}
 
     def turn_off_lights(self):
         self.set_color('BLACK')
-        self.mode = HSVVisualizer.LIGHT_MODES[4]
-        self.is_off = True
-        self.is_asleep = False
+        self.mode = LightModes.Off
 
     def turn_on_music_visualization(self):
-        self.mode = HSVVisualizer.LIGHT_MODES[0]
-        self.is_off = False
-        self.is_asleep = False
-        self.visualize_music = True
+        self.mode = LightModes.VisualizeMusic
 
     def turn_on_fade(self):
-        self.mode = HSVVisualizer.LIGHT_MODES[2]
-        self.visualize_music = False
+        self.mode = LightModes.Fade
         self.value = 1
         self.saturation = 1
-        self.is_off = False
-        self.is_asleep = False
 
     def set_hue(self, hue):
-        self.visualize_music = False
-        self.mode = HSVVisualizer.LIGHT_MODES[5]
+        self.mode = LightModes.CustomStaticColor
         self.hue = hue
         self._bounds_check()
 
@@ -119,8 +173,7 @@ class HSVVisualizer(Visualizer):
         self.fade_speed = transformed_val
 
     def set_color(self, color):
-        self.visualize_music = False
-        self.mode = HSVVisualizer.LIGHT_MODES[1]
+        self.mode = LightModes.StaticColor
 
         self.static_color = color
         if color == 'BLACK':
@@ -140,61 +193,38 @@ class HSVVisualizer(Visualizer):
         self._bounds_check()
 
     def toggle_music_visualization(self):
-        self.visualize_music = not self.visualize_music
-        if not self.visualize_music:
+        if self.mode == LightModes.VisualizeMusic:
             self.set_color(self.static_color)
-
-    # depreciated 
-    # TODO: Remove
-    def update_bass_treble_ratio(self, increase):
-        incr = 0.05
-        if increase:
-            self.bass_treble_ratio += incr
         else:
-            self.bass_treble_ratio -= incr
-        self.bass_treble_ratio = min(1, self.bass_treble_ratio)
-        self.bass_treble_ratio = max(0, self.bass_treble_ratio)
+            self.mode = LightModes.VisualizeMusic
 
-    def visualize(self, raw_data, rate):
-        # Mode is visualize music
-        if self.mode == HSVVisualizer.LIGHT_MODES[0] or self.mode == HSVVisualizer.LIGHT_MODES[3]:
+    def visualize(self):
+        while True:
+            raw_data = self.stream.get_chunk()
+            if self.mode in (LightModes.VisualizeMusic, LightModes.Asleep):
+                if not raw_data:
+                    continue
+                self.stream_analyzer.analyze(raw_data)
+                is_hit, local_maxima = self.update_color(self.amps)
+
+                index, value = max(enumerate(self.amps), key=lambda x: x[1])
+                avg_amp = sum(self.amps)/len(self.amps)
             
+                self.state_deque.append(State(self.amps, is_hit, local_maxima, index, avg_amp))
 
-            self.amps = self._get_amplitude_at_frequency(FREQS, raw_data, rate)
-            is_hit, local_maxima = self._update_colors(self.amps)
+            elif self.mode == LightModes.StaticColor:
+                self.set_color(self.static_color)
+            elif self.mode == LightModes.Fade:
+                self.update_fade()
 
-            index, value = max(enumerate(self.amps), key=lambda x: x[1])
-            avg_amp = sum(self.amps)/len(self.amps)
-        
-            self.state_deque.append(State(self.amps, is_hit, local_maxima, index, avg_amp))
-        # Mode is static color
-        elif self.mode == HSVVisualizer.LIGHT_MODES[1]:
-            self.set_color(self.static_color)
-        # Mode is fade
-        elif self.mode == HSVVisualizer.LIGHT_MODES[2]:
-            self._update_fade()
-
-    def _isolate_subspectrum(self, hue):
-        ratio = 0.5
-        filter_bound_1 = (self.subspectrum * 1.0/6) % 1
-        filter_bound_2 = (filter_bound_1 + 2.0/3) 
-
-        if hue > filter_bound_1 and hue < filter_bound_2:
-            diff = hue - filter_bound_1
-            hue = filter_bound_1 - 0.5 * diff
-        return hue % 1
-
-
-    def _update_fade(self):
+    def update_fade(self):
         self.hue += self.fade_speed
         self._bounds_check()
 
     def _bounds_check(self):
         self.hue %= 1.0
-
         self.saturation = min(self.saturation, 1)
         self.saturation = max(self.saturation, 0)
-
         self.value = min(self.value, 1)
         self.value = max(self.value, 0)
         
@@ -230,71 +260,37 @@ class HSVVisualizer(Visualizer):
             if state.is_hit and not val:
                 count += 1
         return count
-    
-    def _avg_last_n_states(self, n, amp_size):
-        # a list of the last n elements in the deque
-        sd = list(self.state_deque)[(-1 * n):]
-        summed_amps = [0] * amp_size 
-        for state in sd:
-            for i, x in enumerate(state.spectrum):
-                summed_amps[i] += x
-        return [x/len(sd) for x in summed_amps]
 
-    def _update_value_min_and_max(self, pull_amount):
+    def update_value_min_and_max(self, pull_amount):
         self.value_max = max(self.value_max, self.value_chaser)
         self.value_min = min(self.value_min, self.value_chaser)
         self.value_max -= pull_amount
         self.value_min += pull_amount
 
         if self.value_max < 5:
-            self.is_asleep = True
-            self.visualize_music = False
+            self.mode = LightModes.Asleep
         else: 
-            self.is_asleep = False
-            self.visualize_music = True
+            self.mode = LightModes.VisualizeMusic
     
-    def _update_colors(self, freq_amps):
-        local_maxima = self._find_local_maxes(freq_amps)
-        is_hit = self._is_hit(freq_amps, local_maxima, 6)
+    def update_color(self, freq_amps):
+        self.hue += (self.hue_chaser - self.hue) * HUE_CHASER_MULTIPLIER
 
-        #print "h c", self.hue_chaser
-        if len(self.state_deque) > 5:
-            # smoothed_amps = self._avg_last_n_states(5, len(freq_amps))
-            # max_amp = max(smoothed_amps)
-            # print "thing", thing
-            # # Code for hue pusher taken from Sitar Harel and his LEDControl program
-            # h_chaser_diff = (avg_max - self.hue_chaser) / HUE_AVG_AMOUNT
-            # print h_chaser_diff, avg_max
-            if is_hit and self._num_hits_in_hist() < 1:
+        if self.stream_analyzer.is_hit():
+            hits_in_history = self.stream_analyzer.num_hits_in_hist()
+            if hits_in_history == 0:
                 self.hue_chaser = next(self.hues)
-                print self.hue_chaser
-                
-            if self.visualize_music:
-                #print "diff", (self.hue_chaser - self.hue)
-                self.hue += (self.hue_chaser - self.hue) * HUE_CHASER_MULTIPLIER
 
-        if is_hit:
-            shift = (0.2 *(1/ (1+ self._num_hits_in_hist()))) 
+            shift = 0.2 * (1 / (1 + hits_in_history))
             self.value_chaser += shift
             self.value_chaser += shift
-            if(self._num_hits_in_hist() < 2):
-                pass
-                #hue_shift = (shift * float(np.sign(h_chaser_diff))) * HUE_SHIFT_MULTIPLIER
-                #print hue_shift
-                #self.hue_chaser += hue_shift
-                #print "hue chaser", self.hue_chaser
 
         self.hue_chaser %= 1.0
         mean_amp = sum(freq_amps)/len(freq_amps)
 
-
         value_chaser_diff = (mean_amp - self.value_chaser) / VALUE_AVG_AMOUNT
 
         self.value_chaser += value_chaser_diff
-        self._update_value_min_and_max(VALUE_PULL)
-        val = (self.value_chaser - self.value_min)/ (self.value_max - self.value_min)
-        if self.visualize_music:
-            self.value =  val
-        self._bounds_check()
-        return is_hit, local_maxima
+        self.update_value_min_and_max(VALUE_PULL)
+        self.value = (self.value_chaser - self.value_min)/ (self.value_max - self.value_min)
+        self.rgb_bounds_check()
     

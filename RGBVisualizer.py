@@ -29,7 +29,7 @@ class RGBVisualizer(Visualizer):
     BASELINE_FADE_STEP = 0.1
     
     def __init__(self, r, g, b, update_freq):
-        r, g, b = self._bounds_check(r, g, b)
+        r, g, b = self.rgb_bounds_check(r, g, b)
         self.red    = r if r > 1 else r * RGBVisualizer.RGB_INTENSITY_MAX
         self.green  = g if g > 1 else g * RGBVisualizer.RGB_INTENSITY_MAX
         self.blue   = b if b > 1 else b * RGBVisualizer.RGB_INTENSITY_MAX
@@ -183,7 +183,7 @@ class RGBVisualizer(Visualizer):
         
         self._baseline_fade()
         
-        self.red, self.green, self.blue = self._bounds_check(self.red, self.green, self.blue)
+        self.red, self.green, self.blue = self.rgb_bounds_check(self.red, self.green, self.blue)
         rgb = [self.red, self.green, self.blue]
         for c, c_deque in zip(rgb, self.rgb_history):
             c_deque.append(c)

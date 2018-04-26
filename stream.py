@@ -6,19 +6,20 @@ import os
 import traceback
 import pyaudio
 import numpy as np
+from collections import deque
 
 class Stream(object):
-    CHUNK_SIZE = 1024
-    RATE = 44100
-    def __init__(self):
+    def __init__(self, rate=44100, chunk_size=1024):
+        self.CHUNK_SIZE = chunk_size
+        self.RATE = rate
         p = pyaudio.PyAudio()
-        self.input_stream = p.open(format=pyaudio.paInt16, channels=1, rate=Stream.RATE,
+        self.input_stream = p.open(format=pyaudio.paInt16, channels=1, rate=self.RATE,
                             input=True,
-                            frames_per_buffer=Stream.CHUNK_SIZE)
+                            frames_per_buffer=self.CHUNK_SIZE)
 
     def get_chunk(self):
         try:
-            sound_data = array('h', self.input_stream.read(Stream.CHUNK_SIZE))
+            sound_data = array('h', self.input_stream.read(self.CHUNK_SIZE))
             if byteorder == 'big':
               	 sound_data.byteswap()
             return sound_data
@@ -27,10 +28,13 @@ class Stream(object):
             return None
 	    
     def spec(self):
-        return Stream.CHUNK_SIZE, Stream.RATE 
+        return self.CHUNK_SIZE, self.RATE 
+
 
 class FileStream(Stream):
-    def __init__(self, file_name):
+    def __init__(self, file_name, rate=44100, chunk_size=1024):
+        self.CHUNK_SIZE = chunk_size
+        self.RATE = rate
         p = pyaudio.PyAudio()
         self.wf = wave.open(file_name, mode='rb')
         self.output_stream = p.open(format =
@@ -38,19 +42,12 @@ class FileStream(Stream):
                 channels = self.wf.getnchannels(),
                 rate = self.wf.getframerate(),
                 output = True) 
-        #data = self.wf.readframes(180000)
-
 
     def get_chunk(self):
         try:
-            data = self.wf.readframes(1024)
+            data = self.wf.readframes(self.CHUNK_SIZE)
             sound_data = array('h', data)
-            # data = self.wf.readframes(Stream.CHUNK_SIZE)
-            # sig = np.frombuffer(data, dtype='<i2').reshape(-1, self.wf.getnchannels())
-            # sound_data = sig.transpose
             self.output_stream.write(data)
             return sound_data
         except IOError as e:
            return None
-
-

@@ -16,7 +16,7 @@ class Visualizer(object):
     def tuple(self):
         return (self.red, self.green, self.blue)
 
-    def _bounds_check(self, r, g, b):
+    def rgb_bounds_check(self, r, g, b):
         r = min(r, Visualizer.RGB_INTENSITY_MAX)
         g = min(g, Visualizer.RGB_INTENSITY_MAX)
         b = min(b, Visualizer.RGB_INTENSITY_MAX)
@@ -26,14 +26,6 @@ class Visualizer(object):
         b = max(b, Visualizer.RGB_INTENSITY_MIN)
 
         return r, g, b
-
-    def _get_amplitude_at_frequency(self, freqs, aud_data, samp_freq):
-        s1 = numpy.array(aud_data)
-        n = s1.size
-        p = numpy.fft.fft(s1) / float(n) # take the fourier transform 
-
-        magnitude = [math.sqrt(x.real**2 + x.imag**2) for x in p]
-        return [ magnitude[int(freq * n / samp_freq)] for freq in freqs ]
 
     def visualize(self, raw_data, rate):
         raise NotImplementedError
