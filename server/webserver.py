@@ -57,7 +57,9 @@ def load_client_credentials():
                 cli = FrontendClient(client_json["auth_token"], 
                     client_json["username"], 
                     client_json["hashed_pass"], 
-                                     priv = client_json["privilege_level"], is_admin=client_json["is_admin"], pass_already_hashed=True)
+                    priv = client_json["privilege_level"], 
+                    is_admin=client_json["is_admin"], 
+                    pass_already_hashed=True)
                 clients[client_json["auth_token"]] = cli
 
 def save_registered_devices():
