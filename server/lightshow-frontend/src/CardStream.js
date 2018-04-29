@@ -452,8 +452,6 @@ class AdminPrivilidgeListItem extends React.Component {
 
 class AdminPrivilidgeList extends React.Component {
 
-  
-
   constructor(props) {
     super(props);
 
@@ -473,7 +471,6 @@ class AdminPrivilidgeList extends React.Component {
         this.setState({ users });
       });
   }
-
 
   render() {
     return (
@@ -495,6 +492,20 @@ function AdminCard(props) {
           <AdminHeader deviceType="Light Visualizer"/>
           <Divider/>
           <AdminPrivilidgeList auth={props.auth}/>
+          <div>
+            <RaisedButton label="Pull from Git"
+            primary={false}
+            fullWidth={true}
+            backgroundColor={red300}
+            onClick={ (events, value) => {
+                props.devices.map(device => (
+                  axios.post("device/" + device.id, { 
+                    command: {"function": "git pull"}, 
+                    auth_token: props.auth.auth_token
+                  }
+                )
+                  ))}}/> 
+          </div> 
       </Card>
     </div>
     )
@@ -561,7 +572,7 @@ export default class CardStream extends Component {
     console.log(this.props.auth)
     return (
       <div>
-        <AdminCard auth={this.props.auth} is_admin={this.state.is_admin}/>
+        <AdminCard devices={this.state.devices} auth={this.props.auth} is_admin={this.state.is_admin}/>
         <ul style={list_padding}>
           {this.state.devices.map(device =>
             <li key={device.id} style={cardContainerStyle}>
