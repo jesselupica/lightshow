@@ -5,34 +5,29 @@ from itertools import cycle
 import colorsys
 import random
 import numpy as np
+import scipy.fftpack 
+from scipy.signal import argrelextrema
 import math
 from stream import Stream
 
-State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima', 'max_val', 'avg_amp'])
+State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima'])
 
 HUE_AVG_AMOUNT = 40
 HUE_CHASER_MULTIPLIER = 0.01
 HUE_SHIFT_MULTIPLIER = 2
 
-VALUE_AVG_AMOUNT = 10
-VALUE_PULL = 0.30 #0.4 is a good number
+VALUE_AVG_AMOUNT = 21
+VALUE_PULL_RATE_S = 0.01
 
 HISTORY_SIZE = 50
 HISTORY_SAMPLE_SIZE = 20
 HISTORY_DURATION = 2
 
-FREQS = [4186.01, 3951.07, 3729.31, 3520.00, 3322.44, 3135.96, 2959.96,
-  2793.83, 2637.02, 2489.02, 2349.32, 2217.46, 2093.00, 1975.53, 1864.66,
-  1760.00, 1661.22, 1567.98, 1479.98, 1396.91, 1318.51, 1244.51, 1174.66, 
-  1108.73, 1046.50, 987.767, 932.328, 880.000, 830.609, 783.991, 739.989, 
-  698.456, 659.255, 622.254, 587.330, 554.365, 523.251, 493.883, 466.164, 
-  440.000, 415.305, 391.995, 369.994, 349.228, 329.628, 311.127, 293.665, 
-  277.183, 261.626, 246.942, 233.082, 220.000, 207.652, 195.998, 184.997, 
-  174.614, 164.814, 155.563, 146.832, 138.591, 130.813, 123.471, 116.541, 
-  110.000, 103.826, 97.9989, 92.4986, 87.3071, 82.4069, 77.7817, 73.4162, 
-  69.2957, 65.4064, 61.7354, 58.2705, 55.0000, 51.9130, 48.9995, 46.2493, 
-  43.6536, 41.2035, 38.8909, 36.7081, 34.6479, 32.7032, 30.8677, 29.1353, 
-  27.5000]
+SAMPLE_CUTOFF_AMPLITUDE = 0.1
+MAX_VALUE_FALL_SPEED_S = 0.5
+
+# frequencies for all 88 keys on a piano 
+FREQS = [27.5, 29.1353, 30.8677, 32.7032, 34.6479, 36.7081, 38.8909, 41.2035, 43.6536, 46.2493, 48.9995, 51.913, 55.0, 58.2705, 61.7354, 65.4064, 69.2957, 73.4162, 77.7817, 82.4069, 87.3071, 92.4986, 97.9989, 103.826, 110.0, 116.541, 123.471, 130.813, 138.591, 146.832, 155.563, 164.814, 174.614, 184.997, 195.998, 207.652, 220.0, 233.082, 246.942, 261.626, 277.183, 293.665, 311.127, 329.628, 349.228, 369.994, 391.995, 415.305, 440.0, 466.164, 493.883, 523.251, 554.365, 587.33, 622.254, 659.255, 698.456, 739.989, 783.991, 830.609, 880.0, 932.328, 987.767, 1046.5, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98, 1661.22, 1760.0, 1864.66, 1975.53, 2093.0, 2217.46, 2349.32, 2489.02, 2637.02, 2793.83, 2959.96, 3135.96, 3322.44, 3520.0, 3729.31, 3951.07, 4186.01]
 
 # Enum
 class LightModes:
@@ -46,22 +41,36 @@ class LightModes:
 class StreamAnalyzer:
     def __init__(self, history_duration_s, stream_rate, stream_chunk_size):
         self.stream_rate = stream_rate
+        self.stream_chunk_size = stream_chunk_size
         max_len = history_duration_s * stream_rate / stream_chunk_size
         self.state_history = deque([], maxlen=max_len)
-        self.freq_amp_history = deque([], maxlen=max_len)
+        self.curr_state = None
 
     def analyze(self, block):
         amps = self.get_amplitude_at_frequency(block)
-        local_maxima = self.find_local_maxes(amps)
-        is_hit = self.is_hit(amps, local_maxima, 6)
+        local_maxima = np.transpose(argrelextrema(amps, np.greater))
+        hit = self.is_hit(amps, local_maxima, 4)
+        s = State(amps, hit, local_maxima)
+        self.curr_state = s
+        self.state_history.append(s)
 
     def get_amplitude_at_frequency(self, aud_data, freqs=FREQS):
         s1 = np.array(aud_data)
-        n = s1.size
-        p = np.fft.fft(s1) / float(n) # take the fourier transform 
-
-        magnitude = [math.sqrt(x.real**2 + x.imag**2) for x in p]
-        return [ magnitude[int(freq * n / self.stream_rate)] for freq in freqs ]
+        magnitude = np.abs(scipy.fftpack.fft(s1)[:self.stream_chunk_size]) * 2 / (256 * self.stream_chunk_size)
+        
+        notes = []
+        last_divder = 0
+        for f1, f2 in zip(FREQS, FREQS[1:]):
+            curr_divider = int(f1 + f2 / 2)
+            note_range = magnitude[last_divder:curr_divider]
+            if len(note_range) == 0:
+                notes.append(0)
+            else:
+                max_val = max(note_range)
+                avg_val = sum(note_range) / len(note_range)
+                notes.append(avg_val) # avg looks better than max
+            last_divder = curr_divider
+        return np.array(notes)
 
     def num_hits_in_hist(self, val=False):
         count = 0
@@ -72,28 +81,15 @@ class StreamAnalyzer:
                 count += 1
         return count
 
-    def find_local_maxes(self, lst, max_threshold=0):
-        max_val = max(lst)
-        max_indices = []
-        incr = True
-        for i, (e1, e2) in enumerate(zip(lst, lst[1:])):
-            if incr and e1 > e2 and e1 > max_threshold * max_val:
-                max_indices.append(i)
-            # make sure we're not keeping track of marginal increases
-            if e2 > e1 + 1:
-                incr = True
-            else: 
-                incr = False
-        return max_indices
-
     def is_hit(self, freq_amps, local_maxima, hit_coeff):
         sd = list(self.state_history)[-1 * HISTORY_SAMPLE_SIZE:]
 
         if len(sd) >= 1: 
             for i in local_maxima:
                avg = sum((d.spectrum[i] for d in sd))/len(sd)
-               if freq_amps[i] > hit_coeff * avg:
-                   return True
+               if freq_amps.item(i) > hit_coeff * avg:
+                    print "hit at", i, freq_amps.item(i)
+                    return True
         return False
 
 class HSVVisualizer(Visualizer):
@@ -128,7 +124,6 @@ class HSVVisualizer(Visualizer):
         self.stream = stream
         self.stream_analyzer = StreamAnalyzer(HISTORY_DURATION, stream.RATE, stream.CHUNK_SIZE)
 
-        
     def tuple(self):
         max_val = Visualizer.RGB_INTENSITY_MAX
         rgb_vals = colorsys.hsv_to_rgb(self.hue, self.saturation, self.value)
@@ -205,12 +200,7 @@ class HSVVisualizer(Visualizer):
                 if not raw_data:
                     continue
                 self.stream_analyzer.analyze(raw_data)
-                is_hit, local_maxima = self.update_color(self.amps)
-
-                index, value = max(enumerate(self.amps), key=lambda x: x[1])
-                avg_amp = sum(self.amps)/len(self.amps)
-            
-                self.state_deque.append(State(self.amps, is_hit, local_maxima, index, avg_amp))
+                self.update_color()
 
             elif self.mode == LightModes.StaticColor:
                 self.set_color(self.static_color)
@@ -247,9 +237,10 @@ class HSVVisualizer(Visualizer):
 
         if len(sd) >= 1: 
             for i in local_maxima:
-               avg = sum((d.spectrum[i] for d in sd))/len(sd)
-               if freq_amps[i] > hit_coeff * avg:
-                   return True
+                avg = sum((d.spectrum[i] for d in sd))/len(sd)
+                print "here", np.shape(freq_amps.item(i), i, freq_amps.item(i))
+              
+                return True   
         return False
 
     def _num_hits_in_hist(self, val=False):
@@ -265,32 +256,40 @@ class HSVVisualizer(Visualizer):
         self.value_max = max(self.value_max, self.value_chaser)
         self.value_min = min(self.value_min, self.value_chaser)
         self.value_max -= pull_amount
-        self.value_min += pull_amount
+        self.value_min += 2 * pull_amount
 
-        if self.value_max < 5:
+        if self.value_max - self.value_min < 0.003:
             self.mode = LightModes.Asleep
         else: 
             self.mode = LightModes.VisualizeMusic
     
-    def update_color(self, freq_amps):
-        self.hue += (self.hue_chaser - self.hue) * HUE_CHASER_MULTIPLIER
+    def update_color(self):
+        diff = self.hue_chaser - self.hue
+        if abs(diff) > 0.5:
+            diff = -1 * np.sign(diff) * (1 - abs(diff))
 
-        if self.stream_analyzer.is_hit():
+        self.hue += (self.hue_chaser - self.hue) * HUE_CHASER_MULTIPLIER
+        hits_in_history = 0
+        if self.stream_analyzer.curr_state.is_hit:
             hits_in_history = self.stream_analyzer.num_hits_in_hist()
-            if hits_in_history == 0:
+            if hits_in_history <3 :
                 self.hue_chaser = next(self.hues)
+            else:
+                print hits_in_history
 
             shift = 0.2 * (1 / (1 + hits_in_history))
             self.value_chaser += shift
-            self.value_chaser += shift
 
         self.hue_chaser %= 1.0
-        mean_amp = sum(freq_amps)/len(freq_amps)
-
+        freq_amps = self.stream_analyzer.curr_state.spectrum
+        sampled_amps = [a for a in freq_amps if a > SAMPLE_CUTOFF_AMPLITUDE]
+        mean_amp = sum(sampled_amps)/max(len(sampled_amps), 1)
         value_chaser_diff = (mean_amp - self.value_chaser) / VALUE_AVG_AMOUNT
 
-        self.value_chaser += value_chaser_diff
-        self.update_value_min_and_max(VALUE_PULL)
+        max_fall_rate = MAX_VALUE_FALL_SPEED_S / (self.stream_analyzer.stream_rate / self.stream_analyzer.stream_chunk_size)
+        self.value_chaser += max(value_chaser_diff, -1 * max_fall_rate)
+        pull = VALUE_PULL_RATE_S / (self.stream_analyzer.stream_rate / self.stream_analyzer.stream_chunk_size)
+        self.update_value_min_and_max(pull)
         self.value = (self.value_chaser - self.value_min)/ (self.value_max - self.value_min)
-        self.rgb_bounds_check()
+        self._bounds_check()
     
