@@ -500,7 +500,7 @@ function AdminCard(props) {
             onClick={ (events, value) => {
                 props.devices.map(device => (
                   axios.post("device/" + device.id, { 
-                    command: {"function": "git pull"}, 
+                    command: {"function": "git pull", "args": []}, 
                     auth_token: props.auth.auth_token
                   }
                 )
