@@ -1,13 +1,15 @@
 import json
 import socket
 import uuid
-from time import sleep 
+import time
 import os
 import sys
 
 #SERVER_IP = "104.131.78.170"
 SERVER_DOMAIN = 'jesselupica.com'
 SERVER_PORT = 5001
+
+CLIENT_LOCATION = '/home/pi/Public/lightshow/'
 
 class Client(object):
     def __init__(self, visualizer, server_ip=SERVER_DOMAIN, server_port=SERVER_PORT):
@@ -81,7 +83,10 @@ class Client(object):
         args = req["args"]
         privilege_lvl = req["client_privilege_level"]
         if self.commands[command][1] <= privilege_lvl:
-            self.commands[command][0](*args)
+            try:
+                self.commands[command][0](*args)
+            except Exception as e:
+                print("error", e)
 
     def send_state(self, sock):
         mess = {"id" : self.registration["registration"], "state" : self.vis.get_state()}
@@ -137,13 +142,17 @@ class Client(object):
         self.vis.set_fade_speed(float(speed))
 
     def pull_from_repo(self):
-        os.system('git stash && git checkout master && git pull')
-        for i in range(5):
-            self.vis.turn_off_lights()
-            time.sleep(0.5)
-            self.vis.turn_on_fade()
-            time.sleep(0.5)
-
+        try:
+            os.chdir(CLIENT_LOCATION)
+            os.system('git stash && git checkout master && git pull')
+            for i in range(5):
+                self.vis.turn_off_lights()
+                time.sleep(0.5)
+                self.vis.turn_on_fade()
+                time.sleep(0.5)
+            print("hey we didn't crash")
+        except Exception as e:
+            print(e)
 
 if __name__ == '__main__':
     from HSVVisualizer import HSVVisualizer
