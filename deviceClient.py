@@ -1,7 +1,7 @@
 import json
 import socket
 import uuid
-from time import sleep 
+import time
 import os
 import sys
 
