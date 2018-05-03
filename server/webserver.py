@@ -54,10 +54,8 @@ def load_client_credentials():
             client_data = json.loads(f.read())
             for client_json in client_data:
                 print client_json
-                cli = FrontendClient(client_json["auth_token"], 
-                    client_json["username"], 
-                    client_json["hashed_pass"], 
-                    priv = client_json["privilege_level"], 
+                cli = FrontendClient(client_json["auth_token"], client_json["username"], client_json["hashed_pass"], 
+                    priv=client_json["privilege_level"], 
                     is_admin=client_json["is_admin"], 
                     pass_already_hashed=True)
                 clients[client_json["auth_token"]] = cli
@@ -101,6 +99,7 @@ def run_server():
         readable, writable, exceptional = select.select(inputs, outputs, inputs)
         for s in readable:
             if s is server:
+                print s
                 add_input_connection(s)
             else:
                 if s not in outputs:
@@ -123,6 +122,7 @@ def run_server():
 def add_input_connection(s):
     connection, client_address = s.accept()
     connection.setblocking(0)
+    print "new connection from client", connection.getpeername()
     inputs.append(connection)
 
 def handle_request(s):
