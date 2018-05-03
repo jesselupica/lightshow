@@ -83,7 +83,10 @@ class Client(object):
         args = req["args"]
         privilege_lvl = req["client_privilege_level"]
         if self.commands[command][1] <= privilege_lvl:
-            self.commands[command][0](*args)
+            try:
+                self.commands[command][0](*args)
+            except Exception as e:
+                print("error", e)
 
     def send_state(self, sock):
         mess = {"id" : self.registration["registration"], "state" : self.vis.get_state()}
