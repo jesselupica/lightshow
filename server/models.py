@@ -21,7 +21,6 @@ class FrontendClient:
         self.privilege_level = priv
         self.is_guest = is_guest
         self.auth_token = auth_token
-        self.device_features = ClientDevice()
 
     def check_pass(self, password):
         return self.hashed_pass == hashlib.sha256(password).hexdigest()

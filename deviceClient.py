@@ -4,6 +4,7 @@ import uuid
 import time
 import os
 import sys
+import subprocess
 
 #SERVER_IP = "104.131.78.170"
 SERVER_DOMAIN = 'jesselupica.com'
@@ -54,7 +55,7 @@ class Client(object):
                 sock.connect((self.server_ip, self.server_port))
             except socket.error as e:
                 # don't overwhelm the server when it goes down
-                sleep(0.1)
+                time.sleep(0.1)
                 print e
             else:
                 try:
@@ -144,13 +145,14 @@ class Client(object):
     def pull_from_repo(self):
         try:
             os.chdir(CLIENT_LOCATION)
-            os.system('git stash && git checkout master && git pull')
+            subprocess.call(['git', 'pull'])
             for i in range(5):
                 self.vis.turn_off_lights()
                 time.sleep(0.5)
                 self.vis.turn_on_fade()
                 time.sleep(0.5)
             print("hey we didn't crash")
+            subprocess.call(['sudo', 'reboot'])
         except Exception as e:
             print(e)
 

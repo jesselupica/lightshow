@@ -17,14 +17,16 @@ HUE_CHASER_MULTIPLIER = 0.01
 HUE_SHIFT_MULTIPLIER = 2
 
 VALUE_AVG_AMOUNT = 21
-VALUE_PULL_RATE_S = 0.05
+VALUE_PULL_RATE_S = 0.045
 
 HISTORY_SIZE = 50
 HISTORY_SAMPLE_SIZE = 20
 HISTORY_DURATION = 2
 
-SAMPLE_CUTOFF_AMPLITUDE = 0.1
-MAX_VALUE_FALL_SPEED_S = 20
+HIT_SHIFT = 0.5
+
+SAMPLE_CUTOFF_AMPLITUDE = 0.05
+MAX_VALUE_FALL_SPEED_S = 0.7
 
 MIN_BRIGHTNESS = 0 # out of 255
 
@@ -279,7 +281,7 @@ class HSVVisualizer(Visualizer):
             else:
                 print hits_in_history
 
-            shift = 0.2 * (1 / (1 + hits_in_history))
+            shift = HIT_SHIFT * (1 / (1 + hits_in_history))
             self.value_chaser += shift
 
         self.hue_chaser %= 1.0
