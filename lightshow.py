@@ -9,6 +9,7 @@ import deviceClient
 import pygame
 import analyzer as analyzer_mod 
 from HSVVisualizer import HSVVisualizer
+from rhythmVisualizer import RhythmVisualizer
 import stream
 from subprocess import call
 from time import sleep 
@@ -24,7 +25,7 @@ except:
 # global variables
 pi = None
 analyzer = None
-light_visualizer = HSVVisualizer(10, 10, 10)
+light_visualizer = RhythmVisualizer(10, 10, 10)
 
 # for raspberry pi
 if is_pi:
