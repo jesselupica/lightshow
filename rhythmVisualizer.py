@@ -10,28 +10,28 @@ from scipy.signal import argrelextrema
 import math
 from stream import Stream
 
-State = namedtuple('State', ['spectrum', 'is_hit', 'local_maxima'])
+State = namedtuple('State', ['spectrum', 'is_hit', 'intensity', 'raw_data'])
 
 HUE_AVG_AMOUNT = 40
 HUE_CHASER_MULTIPLIER = 0.01
 HUE_SHIFT_MULTIPLIER = 2
 
-VALUE_AVG_AMOUNT = 24
-VALUE_PULL_RATE_S = 0.045
+VALUE_AVG_AMOUNT = 40
+VALUE_PULL_RATE_S = 0.03
 
-HISTORY_SIZE = 50
-HISTORY_SAMPLE_SIZE = 20
 HISTORY_DURATION = 2
 
-HIT_SHIFT = 0.5
+MAX_VALUE_FALL_SPEED_S = 2
 
-SAMPLE_CUTOFF_AMPLITUDE = 0.05
-MAX_VALUE_FALL_SPEED_S = 20
+MIN_HIT_MULTIPLIER = 1.5142857
 
 MIN_BRIGHTNESS = 0 # out of 255
 
 # frequencies for all 88 keys on a piano 
-FREQS = [27.5, 29.1353, 30.8677, 32.7032, 34.6479, 36.7081, 38.8909, 41.2035, 43.6536, 46.2493, 48.9995, 51.913, 55.0, 58.2705, 61.7354, 65.4064, 69.29573]#,  73.4162, 77.7817, 82.4069, 87.3071, 92.4986, 97.9989, 103.826, 110.0, 116.541, 123.471, 130.813, 138.591, 146.832, 155.563, 164.814, 174.614, 184.997, 195.998, 207.652, 220.0, 233.082, 246.942, 261.626, 277.183, 293.665, 311.127, 329.628, 349.228, 369.994, 391.995, 415.305, 440.0, 466.164, 493.883, 523.251, 554.365, 587.33, 622.254, 659.255, 698.456, 739.989, 783.991, 830.609, 880.0, 932.328, 987.767, 1046.5, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98, 1661.22, 1760.0, 1864.66, 1975.53, 2093.0, 2217.46, 2349.32, 2489.02, 2637.02, 2793.83, 2959.96, 3135.96, 3322.44, 3520.0, 3729.31, 3951.07, 4186.01]
+FREQS = [27.5, 29.1353, 30.8677, 32.7032, 34.6479, 36.7081, 38.8909, 41.2035, 43.6536, 46.2493, 48.9995, 51.913, 55.0, 58.2705, 61.7354, 65.4064, 69.29573,  73.4162, 77.7817, 82.4069, 87.3071, 92.4986, 97.9989, 103.826, 110.0, 116.541, 123.471, 130.813, 138.591, 146.832, 155.563, 164.814, 174.614, 184.997, 195.998, 207.652, 220.0, 233.082, 246.942, 261.626, 277.183, 293.665, 311.127, 329.628, 349.228, 369.994, 391.995, 415.305, 440.0, 466.164, 493.883, 523.251, 554.365, 587.33, 622.254, 659.255, 698.456, 739.989, 783.991, 830.609, 880.0, 932.328, 987.767, 1046.5, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98, 1661.22, 1760.0, 1864.66, 1975.53, 2093.0, 2217.46, 2349.32, 2489.02, 2637.02, 2793.83, 2959.96, 3135.96, 3322.44, 3520.0, 3729.31, 3951.07, 4186.01]
+
+def val_for_chunk(rate, chunk_size, stream_rate):
+    return rate * chunk_size / stream_rate
 
 # Enum
 class LightModes:
@@ -48,17 +48,19 @@ class StreamAnalyzer:
         self.stream_chunk_size = stream_chunk_size
         max_len = history_duration_s * stream_rate / stream_chunk_size
         self.state_history = deque([], maxlen=max_len)
+        self.raw_history = deque([], maxlen=max_len)
+        self.energy_history = deque([], maxlen=max_len)
         self.curr_state = None
 
     def analyze(self, block):
-        amps = self.get_amplitude_at_frequency(block)
+        amps, intensity = self.extract_data(block)
         local_maxima = np.transpose(argrelextrema(amps, np.greater))
-        hit = self.is_hit(amps, local_maxima, 4)
-        s = State(amps, hit, local_maxima)
+        hit = self.is_hit(amps, local_maxima, MIN_HIT_MULTIPLIER)
+        s = State(amps, hit, intensity, block)
         self.curr_state = s
         self.state_history.append(s)
 
-    def get_amplitude_at_frequency(self, aud_data, freqs=FREQS):
+    def extract_data(self, aud_data, freqs=FREQS):
         s1 = np.array(aud_data)
         magnitude = np.abs(scipy.fftpack.fft(s1)[:self.stream_chunk_size]) * 2 / (256 * self.stream_chunk_size)
         
@@ -74,11 +76,16 @@ class StreamAnalyzer:
                 avg_val = sum(note_range) / len(note_range)
                 notes.append(max_val) # avg looks better than max
             last_divder = curr_divider
-        return np.array(notes)
+
+        rl_sum = 0 
+        for r, l in zip(aud_data[::2], aud_data[1::2]):
+            rl_sum += abs(r) + abs(l)
+        self.energy_history.append(rl_sum)
+        return np.array(notes), rl_sum
 
     def num_hits_in_hist(self, val=False):
         count = 0
-        sd = list(self.state_history)[-1 * HISTORY_SAMPLE_SIZE:]
+        sd = list(self.state_history)
         
         for state in sd:
             if state.is_hit and not val:
@@ -86,17 +93,14 @@ class StreamAnalyzer:
         return count
 
     def is_hit(self, freq_amps, local_maxima, hit_coeff):
-        sd = list(self.state_history)[-1 * HISTORY_SAMPLE_SIZE:]
+        if not self.curr_state:
+            return False
+        curr_intensity = self.curr_state.intensity
+        avg = sum(self.energy_history)/len(self.energy_history)
+        # var = np.var(np.array(self.energy_history))
+        return curr_intensity > MIN_HIT_MULTIPLIER * avg
 
-        if len(sd) >= 1: 
-            for i in local_maxima:
-               avg = sum((d.spectrum[i] for d in sd))/len(sd)
-               if freq_amps.item(i) > hit_coeff * avg:
-                    print "hit at", i, freq_amps.item(i)
-                    return True
-        return False
-
-class HSVVisualizer(Visualizer):
+class RhythmVisualizer(Visualizer):
     color_table = {'RED': 1, 'ORANGE':0.038888, 'GREEN': 0.3333, 'TEAL':0.5527777, 'BLUE': 0.66666, 'PURPLE': 0.783333, 'PINK':0.9444  }
 
     TREBLE_BASS_DIVIDE = 30
@@ -111,7 +115,7 @@ class HSVVisualizer(Visualizer):
             self.stream_analyzer = StreamAnalyzer(HISTORY_DURATION, stream.RATE, stream.CHUNK_SIZE)
         
         self.hue_chaser = 0
-        self.hues = cycle(sorted(HSVVisualizer.color_table.values()))
+        self.hues = cycle(sorted(RhythmVisualizer.color_table.values()))
         
         self.value_chaser = 0.5
         self.value_max = 0.5
@@ -185,7 +189,7 @@ class HSVVisualizer(Visualizer):
         self.saturation = 1
         self.value = 1
         try:
-            self.hue = HSVVisualizer.color_table[color]
+            self.hue = RhythmVisualizer.color_table[color]
         except: 
             self.saturation = old_sat
             self.value = old_val  
@@ -236,17 +240,6 @@ class HSVVisualizer(Visualizer):
                 incr = False
         return max_indices
 
-    def _is_hit(self, freq_amps, local_maxima, hit_coeff):
-        sd = list(self.state_deque)[-1 * HISTORY_SAMPLE_SIZE:]
-
-        if len(sd) >= 1: 
-            for i in local_maxima:
-                avg = sum((d.spectrum[i] for d in sd))/len(sd)
-                print "here", np.shape(freq_amps.item(i), i, freq_amps.item(i))
-              
-                return True   
-        return False
-
     def _num_hits_in_hist(self, val=False):
         count = 0
         sd = list(self.state_deque)[-1 * HISTORY_SAMPLE_SIZE:]
@@ -260,7 +253,7 @@ class HSVVisualizer(Visualizer):
         self.value_max = max(self.value_max, self.value_chaser)
         self.value_min = min(self.value_min, self.value_chaser)
         self.value_max -= pull_amount
-        self.value_min += 2 * pull_amount
+        self.value_min += pull_amount
 
         if self.value_max - self.value_min < 0.003:
             self.mode = LightModes.Asleep
@@ -276,23 +269,25 @@ class HSVVisualizer(Visualizer):
         hits_in_history = 0
         if self.stream_analyzer.curr_state.is_hit:
             hits_in_history = self.stream_analyzer.num_hits_in_hist()
-            if hits_in_history <3 :
+            if hits_in_history < 10 :
                 self.hue_chaser = next(self.hues)
-            else:
-                print hits_in_history
 
-            shift = HIT_SHIFT * (1 / (1 + hits_in_history))
+            shift = 0.2 * (1 / (1 + hits_in_history))
             self.value_chaser += shift
 
         self.hue_chaser %= 1.0
-        freq_amps = self.stream_analyzer.curr_state.spectrum
-        sampled_amps = [a for a in freq_amps if a > SAMPLE_CUTOFF_AMPLITUDE]
-        mean_amp = sum(sampled_amps)/max(len(sampled_amps), 1)
-        value_chaser_diff = (mean_amp - self.value_chaser) / VALUE_AVG_AMOUNT
 
-        max_fall_rate = MAX_VALUE_FALL_SPEED_S / (self.stream_analyzer.stream_rate / self.stream_analyzer.stream_chunk_size)
+        if self.stream_analyzer.curr_state:
+            max_intensity = max(self.stream_analyzer.energy_history)
+            intensity = self.stream_analyzer.curr_state.intensity / max_intensity
+        else:
+            intensity = 0 
+        value_chaser_diff = (intensity - self.value_chaser) / VALUE_AVG_AMOUNT
+
+
+        max_fall_rate = val_for_chunk(MAX_VALUE_FALL_SPEED_S, self.stream_analyzer.stream_chunk_size, self.stream_analyzer.stream_rate)
         self.value_chaser += value_chaser_diff
-        pull = VALUE_PULL_RATE_S / (self.stream_analyzer.stream_rate / self.stream_analyzer.stream_chunk_size)
+        pull = val_for_chunk(VALUE_PULL_RATE_S, self.stream_analyzer.stream_chunk_size, self.stream_analyzer.stream_rate)
         self.update_value_min_and_max(pull)
         self.value = (self.value_chaser - self.value_min)/ (self.value_max - self.value_min)
         self._bounds_check()
