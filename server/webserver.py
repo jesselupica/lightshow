@@ -11,6 +11,7 @@ from flask import Flask, request, render_template, send_from_directory
 from threading import Thread
 from flask_cors import CORS
 import hashlib
+from gevent.pywsgi import WSGIServer
 
 app = Flask(__name__, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
 CORS(app)
@@ -305,7 +306,9 @@ def internal_server_error(e):
     print e
 
 if __name__ == "__main__":
-    t = Thread(target=app.run, kwargs={"host":"0.0.0.0", "port" : 80})
+    t = Thread(target=run_server)
     t.daemon = True
     t.start()
-    run_server()
+    http_server = WSGIServer(("0.0.0.0", 80), app)
+    http_server.serve_forever()
+    
