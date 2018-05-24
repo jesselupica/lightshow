@@ -21,6 +21,8 @@ VALUE_PULL_RATE_S = 0.03
 
 HISTORY_DURATION = 2
 
+SLEEP_MAX = 3000
+
 MAX_VALUE_FALL_SPEED_S = 2
 
 MIN_HIT_MULTIPLIER = 1.5142857
@@ -51,6 +53,7 @@ class StreamAnalyzer:
         self.raw_history = deque([], maxlen=max_len)
         self.energy_history = deque([], maxlen=max_len)
         self.curr_state = None
+        self.sleep_history = deque([], maxlen=5*max_len)
 
     def analyze(self, block):
         amps, intensity = self.extract_data(block)
@@ -81,6 +84,7 @@ class StreamAnalyzer:
         for r, l in zip(aud_data[::2], aud_data[1::2]):
             rl_sum += abs(r) + abs(l)
         self.energy_history.append(rl_sum)
+        self.sleep_history.append(rl_sum)
         return np.array(notes), rl_sum
 
     def num_hits_in_hist(self, val=False):
@@ -208,8 +212,13 @@ class RhythmVisualizer(Visualizer):
                 if not raw_data:
                     continue
                 self.stream_analyzer.analyze(raw_data)
+                
+                if max(self.stream_analyzer.sleep_history) < SLEEP_MAX:
+                    self.mode = LightModes.Asleep
+                else:
+                    self.mode = LightModes.VisualizeMusic
                 self.update_color()
-
+                    
             elif self.mode == LightModes.StaticColor:
                 self.set_color(self.static_color)
             elif self.mode == LightModes.Fade:
@@ -261,6 +270,10 @@ class RhythmVisualizer(Visualizer):
             self.mode = LightModes.VisualizeMusic
     
     def update_color(self):
+        if self.mode == LightModes.Asleep:
+            self.value = 0
+            return
+        
         diff = self.hue_chaser - self.hue
         if abs(diff) > 0.5:
             diff = -1 * np.sign(diff) * (1 - abs(diff))
@@ -283,7 +296,7 @@ class RhythmVisualizer(Visualizer):
         else:
             intensity = 0 
         value_chaser_diff = (intensity - self.value_chaser) / VALUE_AVG_AMOUNT
-
+        
 
         max_fall_rate = val_for_chunk(MAX_VALUE_FALL_SPEED_S, self.stream_analyzer.stream_chunk_size, self.stream_analyzer.stream_rate)
         self.value_chaser += value_chaser_diff

@@ -24,7 +24,7 @@ class Stream(object):
               	 sound_data.byteswap()
             return sound_data
         except IOError as e:
-            print "this is the exception", e
+
             return None
 	    
     def spec(self):
