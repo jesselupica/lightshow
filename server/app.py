@@ -81,6 +81,10 @@ def oauth_callback(provider):
     login_user(user, True)
     return redirect(url_for('index'))
 
+@application.route('/test')
+def test():
+    return "Testing!"
+
 if __name__ == '__main__':
     db.create_all()
     application.run(debug=True, host='0.0.0.0')
