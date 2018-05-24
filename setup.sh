@@ -12,15 +12,16 @@ cd ..
 
 sudo apt-get install libasound2-dev
 
-# Install audio inputs to read inputs from Linux devices
-git clone https://github.com/larsimmisch/pyalsaaudio.git
-cd pyalsaaudio
-python setup.py build
-sudo python setup.py install
+# depricated ...I think
+# # Install audio inputs to read inputs from Linux devices
+# git clone https://github.com/larsimmisch/pyalsaaudio.git
+# cd pyalsaaudio
+# python setup.py build
+# sudo python setup.py install
 
 cd ..
 
 pip install -r requirements.txt
 
-# clean up
-sudo rm -rf pyalsaaudio
+# # clean up
+# sudo rm -rf pyalsaaudio
