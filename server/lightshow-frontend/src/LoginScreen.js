@@ -4,6 +4,8 @@ import AppBar from 'material-ui/AppBar';
 import {Card, CardHeader, CardTitle, CardText} from 'material-ui/Card';
 import RaisedButton from 'material-ui/RaisedButton';
 import axios from 'axios';
+import FacebookLogin from 'react-facebook-login';
+
 
 const styles = {
   headline: {
@@ -66,7 +68,12 @@ function hello() {
   console.log("hello")
 }
 
+const responseFacebook = (response) => {
+  console.log(response);
+}
+
 export default class LoginScreen extends React.Component {
+
     render() {
     return (<div>
       <MuiThemeProvider>
@@ -87,6 +94,11 @@ export default class LoginScreen extends React.Component {
                         <RaisedButton label="Sign up" onClick={this.props.signupClick} primary={true} fullWidth={true} style={style} />
                     </div>
                     <RaisedButton onClick={this.props.guestClick} label={"Continue as guest"} primary={true} fullWidth={true}  style={style} />
+                    <FacebookLogin
+                      appId="416422595462913"
+                      autoLoad={true}
+                      fields="name,email,picture"
+                      callback={responseFacebook} />
                 </div>
             </Card>
         </div>
