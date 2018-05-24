@@ -4,18 +4,18 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user,\
     current_user
 from oauth import OAuthSignIn
 
-app = Flask(__name__, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
-app.config['SECRET_KEY'] = 'top secret!'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
-app.config['OAUTH_CREDENTIALS'] = {
+application = Flask(__name__, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
+application.config['SECRET_KEY'] = 'top secret!'
+application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
+application.config['OAUTH_CREDENTIALS'] = {
     'facebook': {
         'id': '416422595462913',
         'secret': '5cea25201b511b3b072de787db41182b'
     }
 }
 
-db = SQLAlchemy(app)
-lm = LoginManager(app)
+db = SQLAlchemy(application)
+lm = LoginManager(application)
 lm.login_view = 'index'
 
 class User(UserMixin, db.Model):
@@ -37,34 +37,34 @@ class Device(db.Model):
 def load_user(id):
     return User.query.get(int(id))
 
-@app.route('/', methods=['GET'])
-@app.route('/lights')
-@app.route('/login')
-@app.route('/signup')
+@application.route('/', methods=['GET'])
+@application.route('/lights')
+@application.route('/login')
+@application.route('/signup')
 def path_index():
     return render_template('index.html')
 
-@app.route('/<path:path>')
+@application.route('/<path:path>')
 def serve_path(path):
     return send_from_directory('/var/www/jesselupica', path)
 
-@app.route('/static/<path:path>') # serve whatever the client requested in the static folder
+@application.route('/static/<path:path>') # serve whatever the client requested in the static folder
 def serve_static(path):
     return send_from_directory('lightshow-frontend/build/static', path)
 
-@app.route('/logout')
+@application.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('index'))
 
-@app.route('/authorize/<provider>')
+@application.route('/authorize/<provider>')
 def oauth_authorize(provider):
     if not current_user.is_anonymous():
         return redirect(url_for('index'))
     oauth = OAuthSignIn.get_provider(provider)
     return oauth.authorize()
 
-@app.route('/callback/<provider>')
+@application.route('/callback/<provider>')
 def oauth_callback(provider):
     if not current_user.is_anonymous():
         return redirect(url_for('index'))
@@ -83,4 +83,4 @@ def oauth_callback(provider):
 
 if __name__ == '__main__':
     db.create_all()
-    app.run(debug=True)
+    application.run(debug=True, host='0.0.0.0')
