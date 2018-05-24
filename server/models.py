@@ -11,7 +11,6 @@ class FrontendClient:
         self.username = username
         if not pass_already_hashed:
             pass_m = hashlib.sha256()
-            print password
             pass_m.update(password)
             self.hashed_pass = pass_m.hexdigest()
         else:
@@ -44,7 +43,6 @@ class Device(object):
 
     def send_enqueued_messages(self, s):
         for message in self.messages:
-            print "sending", message, "to", self.registration_id
             s.send(json.dumps(message) + '\n')
         self.messages = []
 

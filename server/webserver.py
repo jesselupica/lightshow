@@ -11,6 +11,10 @@ from flask import Flask, request, render_template, send_from_directory
 from threading import Thread
 from flask_cors import CORS
 import hashlib
+from gevent import monkey
+from gevent import ssl
+monkey.patch_all()
+
 from gevent.pywsgi import WSGIServer
 
 app = Flask(__name__, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
@@ -54,7 +58,6 @@ def load_client_credentials():
         with open(client_file, mode="r+") as f:
             client_data = json.loads(f.read())
             for client_json in client_data:
-                print client_json
                 cli = FrontendClient(client_json["auth_token"], client_json["username"], client_json["hashed_pass"], 
                     priv=client_json["privilege_level"], 
                     is_admin=client_json["is_admin"], 
@@ -77,9 +80,10 @@ def create_guest_user():
     # create this so that people can't log in as guests i give permissions to
     usr_m = hashlib.sha256()
     pass_m = hashlib.sha256()
-    username = usr_m.update(str(time.time()))
-    password = pass_m.update(str(time.time() + 1))
-    clients[guest_token] = FrontendClient(guest_token, username.digest(), password.digest(), is_guest=True)
+    
+    usr_m.update(str(time.time()))
+    pass_m.update(str(time.time() + 1))
+    clients[guest_token] = FrontendClient(guest_token, usr_m.digest(), pass_m.digest(), is_guest=True)
     return guest_token
 
 def create_user(username, password):
@@ -94,13 +98,13 @@ def user_already_exists(username):
     return False
 
 def run_server():
+    print("starting server")
     load_registered_devices()
     load_client_credentials()
     while inputs:
         readable, writable, exceptional = select.select(inputs, outputs, inputs)
         for s in readable:
             if s is server:
-                print s
                 add_input_connection(s)
             else:
                 if s not in outputs:
@@ -123,7 +127,7 @@ def run_server():
 def add_input_connection(s):
     connection, client_address = s.accept()
     connection.setblocking(0)
-    print "new connection from client", connection.getpeername()
+    print("new connection from client", connection.getpeername())
     inputs.append(connection)
 
 def handle_request(s):
@@ -131,13 +135,12 @@ def handle_request(s):
         data = s.recv(1024)
     except:
         return
-    print data + " | "
     if data:
         for message in data.split('\n'):
             try:
                 client_message = json.loads(message)
             except ValueError as e:
-                print "value error", e, message 
+                print("value error", e, message)
                 continue 
             if "registration" in client_message:
                 register_device(s, client_message)
@@ -177,6 +180,10 @@ def register_device(socket_conn, client_message):
 def path_index():
     return render_template('index.html')
 
+@app.route('/<path:path>')
+def serve_path(path):
+    return send_from_directory('/var/www/jesselupica', path)
+
 @app.route('/static/<path:path>') # serve whatever the client requested in the static folder
 def serve_static(path):
     return send_from_directory('lightshow-frontend/build/static', path)
@@ -194,8 +201,7 @@ def show_user_profile(device_id):
     # may have to change with auth
     if request.method == 'POST':
         data = json.loads(request.data)
-        data["command"]["client_privilege_level"] = clients[data["auth_token"]].privilege_level
-        print data["command"]
+        data["command"]["client_privilege_level"] = 2 #clients[data["auth_token"]].privilege_level
         if device_id in device_index:
             device_index[device_id].messages.append(data["command"])
         return "Message relayed"
@@ -211,7 +217,7 @@ def remove_device(device_id):
                 registered_devices.remove(device_index[device_id])
                 del(device_index[device_id])
             except:
-                print registered_devices
+                print(registered_devices)
             remove_device_from_registration_list(device_id)
             save_registered_devices()
             return "", 200
@@ -222,7 +228,6 @@ def remove_device(device_id):
 def rename_device(device_id):
     if request.method == 'POST':
         data = json.loads(request.data)
-        print data
         if clients[data["auth_token"]].is_admin:
             device_index[device_id].nickname = data['nickname']
             save_registered_devices()
@@ -266,8 +271,8 @@ def auth_verify():
         data = json.loads(request.data)
         for auth_token, cli in clients.items():
             if data["username"] == cli.username:
-                print data["password"], hashlib.sha256(data['password']).hexdigest()
-                print cli.hashed_pass
+                print(data["password"], hashlib.sha256(data['password']).hexdigest())
+                print(cli.hashed_pass)
                 if cli.check_pass(data["password"]):
                     auth = auth_token
                     found = True
@@ -293,9 +298,7 @@ def get_users():
 
 @app.route('/is_admin', methods=['POST'])
 def is_admin():
-    print "request data", request.data
     data = json.loads(request.data)
-    print clients[data["auth_token"]].is_admin, data["auth_token"]
     if clients[data["auth_token"]].is_admin:
         return '', 200
     else:
@@ -303,12 +306,20 @@ def is_admin():
     
 @app.errorhandler(500)
 def internal_server_error(e):
-    print e
+    print(e)
 
+def start_server():
+    t = Thread(target=run_server)
+    t.daemon = True
+    t.start()
+    app.run(host='0.0.0.0', port=80)
+    
 if __name__ == "__main__":
     t = Thread(target=run_server)
     t.daemon = True
     t.start()
-    http_server = WSGIServer(("0.0.0.0", 80), app)
+    http_server = WSGIServer(("0.0.0.0", 80), app, certfile='/etc/letsencrypt/live/jesselupica.com/fullchain.pem', keyfile='/etc/letsencrypt/live/jesselupica.com/privkey.pem')
     http_server.serve_forever()
+    
+
     
