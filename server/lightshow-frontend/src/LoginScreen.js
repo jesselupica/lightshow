@@ -63,16 +63,28 @@ const style = {
   /*minWidth: '20%'*/
 };
 
-
-function hello() {
-  console.log("hello")
-}
-
-const responseFacebook = (response) => {
-  console.log(response);
-}
-
 export default class LoginScreen extends React.Component {
+
+  constructor(props) {
+    super(props)
+        console.log("this is the history" + this.props.history)
+
+    this.state = {
+      username: '',
+      password: '',
+      usernameErrorMessage: '',
+      passErrorMessage: '',
+    }
+  }
+
+
+  responseFacebook(response, history) {
+    console.log(response);
+
+    //this.props.auth.isAuthenticated = true
+    //this.props.auth.auth_token = response
+    history.push("/lights");
+  }
 
     render() {
     return (<div>
@@ -87,18 +99,12 @@ export default class LoginScreen extends React.Component {
                 <CardTitle title="One Account. All of Lightshow" titleStyle={{'fontFamily': 'HelveticaNeue-Light','fontSize': 30, textAlign: 'center', marginTop: '30px', fontWeight: 20}}/>
                 <div style={{height: 30}}/>
                 <div style={buttonContainerStyle}>
-                    <div style={{width: '45%', }}>
-                        <RaisedButton label="Login" onClick={this.props.loginClick} primary={true}  fullWidth={true} style={style} />
-                    </div>
-                    <div style={{width: '45%', }}>
-                        <RaisedButton label="Sign up" onClick={this.props.signupClick} primary={true} fullWidth={true} style={style} />
-                    </div>
-                    <RaisedButton onClick={this.props.guestClick} label={"Continue as guest"} primary={true} fullWidth={true}  style={style} />
                     <FacebookLogin
                       appId="416422595462913"
                       autoLoad={true}
+                      cookie={true}
                       fields="name,email,picture"
-                      callback={responseFacebook} />
+                      callback={(resp) => {this.responseFacebook(resp, this.props.history)}} />
                 </div>
             </Card>
         </div>

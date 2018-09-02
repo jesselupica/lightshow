@@ -140,11 +140,7 @@ const Home = () => (
 )
 
 const PrivateRoute = ({ component: Component, ...rest }) => (
-  <Route {...rest} render={(props) => (
-    userAuth.isAuthenticated === true
-      ? <Component {...props} />
-      : <Redirect to='/' />
-  )} />
+  <Route {...rest} render={(props) => ( <Component {...props} /> )} />
 )
 
 var history = createBrowserHistory()
@@ -158,9 +154,7 @@ const App = () => (
     <Router history={history} >
       <div>
         <Switch>
-          <Route exact path='/' component={Login}/>
-          <Route path='/signup' render={() => {return(<Signup auth={userAuth} history={history}/>)}}/>
-          <Route path='/login' render={() => {return(<Signin auth={userAuth} history={history}/>)}}/>
+          <Route path='/' render={() => {return(<LoginScreen auth={userAuth} history={history}/>)}}/>
           <PrivateRoute path='/lights' component={Home}/>
         </Switch>
         </div>
