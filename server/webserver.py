@@ -11,10 +11,6 @@ from flask import Flask, request, render_template, send_from_directory
 from threading import Thread
 from flask_cors import CORS
 import hashlib
-from gevent import monkey
-from gevent import ssl
-monkey.patch_all()
-
 from gevent.pywsgi import WSGIServer
 
 app = Flask(__name__, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
@@ -178,8 +174,8 @@ def register_device(socket_conn, client_message):
 @app.route('/login')
 @app.route('/signup')
 def path_index():
-    #return render_template('index.html')
-    return "Hello there!"
+    return render_template('index.html')
+    #return "Hello there!"
     
 @app.route('/<path:path>')
 def serve_path(path):
