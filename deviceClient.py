@@ -56,7 +56,7 @@ class Client(object):
             except socket.error as e:
                 # don't overwhelm the server when it goes down
                 time.sleep(0.1)
-                print e
+                #print e
             else:
                 try:
                     sock.send(json.dumps(self.registration) + "\n")

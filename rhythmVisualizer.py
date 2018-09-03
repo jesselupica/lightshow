@@ -9,12 +9,12 @@ from scipy.signal import argrelextrema
 import math
 import time
 from stream import Stream
-from colors import NaiveHueSelector
+from colors import ColorPalleteHueSelector
 State = namedtuple('State', ['spectrum', 'is_hit', 'intensity', 'raw_data'])
 
-HUE_AVG_AMOUNT = 40
-HUE_CHASER_MULTIPLIER = 0.01
 HUE_SHIFT_MULTIPLIER = 2
+
+SAT_CHASER_MULTIPLIER = 0.015
 
 VALUE_AVG_AMOUNT = 40
 VALUE_PULL_RATE_S = 0.03
@@ -100,7 +100,8 @@ class RhythmVisualizer(Visualizer):
             self.stream_analyzer = StreamAnalyzer(HISTORY_DURATION, stream.RATE, stream.CHUNK_SIZE)
         
         self.desired_hue = 0
-        self.hue_selector = NaiveHueSelector()
+        self.desired_sat = 1
+        self.hue_selector = ColorPalleteHueSelector()
         
         self.value_chaser = 0.5
         self.value_max = 0.5
@@ -117,6 +118,9 @@ class RhythmVisualizer(Visualizer):
         self.stream = stream
         self.stream_analyzer = StreamAnalyzer(HISTORY_DURATION, stream.RATE, stream.CHUNK_SIZE)
 
+    def attach_spotify_integration(self, spotify_integ):
+        self.hue_selector = ColorPalleteHueSelector(spotify_integ)
+        
     def tuple(self):
         max_val = Visualizer.RGB_INTENSITY_MAX
         rgb_vals = colorsys.hsv_to_rgb(self.hue, self.saturation, max(self.value, MIN_BRIGHTNESS / 255))
@@ -232,15 +236,19 @@ class RhythmVisualizer(Visualizer):
         if self.mode == LightModes.Asleep:
             self.value = 0
             return
-        diff = self.desired_hue - self.hue
-        if abs(diff) > 0.5:
-            diff = -1 * np.sign(diff) * (1 - abs(diff))
-        #print diff, self.desired_hue, self.hue, self.stream_analyzer.hit_mag
-        self.hue += diff * HUE_CHASER_MULTIPLIER
+        hue_diff = self.desired_hue - self.hue
+        if abs(hue_diff) > 0.5:
+            hue_diff = -1 * np.sign(hue_diff) * (1 - abs(hue_diff))
+        self.hue += hue_diff * self.hue_selector.hue_multiplier
+
+        sat_diff = self.desired_sat - self.saturation
+        self.saturation += sat_diff * SAT_CHASER_MULTIPLIER
 
         if self.stream_analyzer.is_hit:
             mag = self.stream_analyzer.hit_mag
-            self.desired_hue = self.hue_selector.next(mag)
+            desired_color = self.hue_selector.next(mag)
+            self.desired_hue = desired_color[0]
+            self.desired_sat = desired_color[1]
             shift = 0.2
             self.value_chaser += shift
 

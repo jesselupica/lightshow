@@ -10,6 +10,7 @@ import pygame
 import analyzer as analyzer_mod 
 from HSVVisualizer import HSVVisualizer
 from rhythmVisualizer import RhythmVisualizer
+from spotify_integration import SpotifyIntegration
 import stream
 from subprocess import call
 from time import sleep 
@@ -70,6 +71,11 @@ if __name__ == '__main__':
     cli_thread.daemon = True
     cli_thread.start()
     
+    spotify_integ = SpotifyIntegration()
+    spotify_thread = threading.Thread(target=spotify_integ.run_loop)
+    spotify_thread.daemon = True
+    spotify_thread.start()
+
     if len(sys.argv) >= 2:
         audio_stream = stream.FileStream(sys.argv[1])
     else:
@@ -78,8 +84,11 @@ if __name__ == '__main__':
         lights_thread.daemon = True
         lights_thread.start()
 
+
     light_visualizer.attach_stream(audio_stream)
-    
+    if not spotify_integ.detection_failure:
+        light_visualizer.attach_spotify_integration(spotify_integ)
+
     vis_thread = threading.Thread(target=light_visualizer.visualize)
     vis_thread.daemon = True
     vis_thread.start()

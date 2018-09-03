@@ -1,0 +1,85 @@
+{
+    "macros" : {
+        "green100" : "#00ff00",
+        "blue100" : "#0000ff",
+        "red100" : "#ff0000",
+        "aqua" : "#00ffff",
+        "fuscia" : "#ff00ff",
+        "orange" : "#ffa500",
+        "pink1" : "#ff00bf",
+        "deep aqua" : "#003b46",
+        "ocean" : "#07575b",
+        "wave" : "#66a5ad",
+        "seafoam" : "#c4dfe6"
+
+    },
+    "palettes" : [
+        { 
+            "name" : "ocean blues",
+            "colors" : [ "deep aqua", "ocean", "wave", "seafoam"],
+            "hue multiplier" : 0.015,
+            "is chill" : true
+        },
+        { 
+            "name" : "rgb slow",
+            "colors" : [ "green100", "red100", "blue100"],
+            "hue multiplier" : 0.03,
+            "is chill" : true
+        },
+        { 
+            "name" : "rgb slow",
+            "colors" : [ "green100", "red100", "blue100"],
+            "hue multiplier" : 0.03,
+            "is chill" : false
+        },
+        { 
+            "name" : "rgb fast",
+            "colors" : [ "green100", "red100", "blue100"],
+            "hue multiplier" : 1.0,
+            "is chill" : false
+        },
+        { 
+            "name" :"blues and orange", 
+            "colors" : [ "aqua", "orange", "blue100", "orange"],
+            "hue multiplier" : 1.0,
+            "is chill" : false
+        },
+        {
+            "name" : "rainbow",
+            "colors" : ["#9400D3", "#4B0082", "#0000FF", "#00FF00", "#FFFF00", "#FF7F00", "#FF0000" ],
+            "hue multiplier" : 0.03,
+            "is chill" : true
+        },
+        {
+            "name" : "lemonade stand slow",
+            "colors" : ["#f70025", "#f7efe2", "#f25c00", "#f9a603"],
+            "hue multiplier" : 0.03,
+            "is chill" : true
+        },
+        {
+            "name" : "lemonade stand fast",
+            "colors" : ["#f70025", "#f7efe2", "#f25c00", "#f9a603"],
+            "hue multiplier" : 0.1,
+            "is chill" : false
+        },
+        {
+            "name" : "fun and tropical",
+            "colors" : ["#4897d8", "#ffdb5c", "#fa6e59", "#f8a055"],
+            "hue multiplier" : 0.03,
+            "is chill" : true
+        },
+        {
+            "name" : "fresh greens fast",
+            "colors" : ["#265c00", "#68a225", "#b3de81", "#fdffff"],
+            "hue multiplier" : 0.1,
+            "is chill" : false
+        },
+        {
+            "name" : "fresh greens slow",
+            "colors" : ["#265c00", "#68a225", "#b3de81", "#fdffff"],
+            "hue multiplier" : 0.03,
+            "is chill" : true
+        }
+    ]
+}
+

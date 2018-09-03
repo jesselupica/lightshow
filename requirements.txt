@@ -7,3 +7,6 @@ gunicorn
 flask_sqlalchemy
 flask_login
 rauth
+webcolors
+spotipy
+git+git://github.com/plamere/spotipy.git 
