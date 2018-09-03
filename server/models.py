@@ -1,10 +1,8 @@
 import json
 import hashlib
-from webserver import app
+from collections import namedtuple
 from flask_sqlalchemy import SQLAlchemy
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
-db = SQLAlchemy(app)
 
 ClientDevice = namedtuple('ClientDevice', ['os', 'device', 'time_since_last_req'])
 

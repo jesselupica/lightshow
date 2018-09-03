@@ -178,8 +178,9 @@ def register_device(socket_conn, client_message):
 @app.route('/login')
 @app.route('/signup')
 def path_index():
-    return render_template('index.html')
-
+    #return render_template('index.html')
+    return "Hello there!"
+    
 @app.route('/<path:path>')
 def serve_path(path):
     return send_from_directory('/var/www/jesselupica', path)
@@ -315,6 +316,7 @@ def start_server():
     app.run(host='0.0.0.0', port=80)
     
 if __name__ == "__main__":
+    print "hello friends"
     t = Thread(target=run_server)
     t.daemon = True
     t.start()
