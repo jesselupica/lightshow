@@ -13,8 +13,8 @@ from flask_cors import CORS
 import hashlib
 from gevent.pywsgi import WSGIServer
 
-app = Flask(__name__, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
-CORS(app)
+app = Flask(__name__)#, static_folder='lightshow-frontend/build/static/', template_folder='lightshow-frontend/build/')
+#CORS(app)
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -174,8 +174,8 @@ def register_device(socket_conn, client_message):
 @app.route('/login')
 @app.route('/signup')
 def path_index():
-    return render_template('index.html')
-    #return "Hello there!"
+    #return render_template('index.html')
+    return "Hello there!"
     
 @app.route('/<path:path>')
 def serve_path(path):
@@ -304,20 +304,15 @@ def is_admin():
 @app.errorhandler(500)
 def internal_server_error(e):
     print(e)
-
-def start_server():
-    t = Thread(target=run_server)
-    t.daemon = True
-    t.start()
-    app.run(host='0.0.0.0', port=80)
     
 if __name__ == "__main__":
     print "hello friends"
     t = Thread(target=run_server)
     t.daemon = True
     t.start()
-    http_server = WSGIServer(("0.0.0.0", 80), app, certfile='/etc/letsencrypt/live/jesselupica.com/fullchain.pem', keyfile='/etc/letsencrypt/live/jesselupica.com/privkey.pem')
-    http_server.serve_forever()
+    #app.run(host='0.0.0.0')
+    #http_server = WSGIServer(("0.0.0.0", 5000), app, certfile='/etc/letsencrypt/live/jesselupica.com/fullchain.pem', keyfile='/etc/letsencrypt/live/jesselupica.com/privkey.pem')
+    #http_server.serve_forever()
     
 
     
