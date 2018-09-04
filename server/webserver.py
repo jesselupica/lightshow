@@ -309,8 +309,8 @@ if __name__ == "__main__":
     print "hello friends"
     t = Thread(target=run_server)
     t.daemon = True
-    t.start()
-    #app.run(host='0.0.0.0')
+    #    t.start()
+    app.run(host='0.0.0.0')
     #http_server = WSGIServer(("0.0.0.0", 5000), app, certfile='/etc/letsencrypt/live/jesselupica.com/fullchain.pem', keyfile='/etc/letsencrypt/live/jesselupica.com/privkey.pem')
     #http_server.serve_forever()
     

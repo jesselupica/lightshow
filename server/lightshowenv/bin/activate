@@ -40,7 +40,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/root/lightshow/server/lightshowenv"
+VIRTUAL_ENV="/home/jesse/lightshow/server/lightshowenv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

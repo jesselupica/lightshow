@@ -1,4 +1,4 @@
-#!/root/lightshow/server/lightshowenv/bin/python
+#!/home/jesse/lightshow/server/lightshowenv/bin/python
 
 import sys
 import getopt
