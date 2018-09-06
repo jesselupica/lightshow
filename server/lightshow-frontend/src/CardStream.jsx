@@ -1,7 +1,7 @@
- /*eslint-env jquery*/
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
-import { Card } from 'material-ui/Card'
+//import { Card } frimport Card from '@material-ui/core/Card';om 'material-ui/Card'
+import Card from '@material-ui/core/Card';
 import Dialog from 'material-ui/Dialog';
 import Slider from 'material-ui/Slider'
 import Divider from 'material-ui/Divider'
@@ -19,7 +19,7 @@ import TextField from 'material-ui/TextField';
 import MoreVertIcon from 'material-ui/svg-icons/navigation/more-vert';
 import {grey400} from 'material-ui/styles/colors';
 import Subheader from 'material-ui/Subheader';
-import Snackbar from 'material-ui/Snackbar';
+import Snackbar from '@material-ui/core/Snackbar';
 import {blue300, blue900, red300, red900, green300, green900, purple300, purple900, pink300, pink900, teal300, teal900, orange300, orange900, pink200} from 'material-ui/styles/colors';
 import axios from 'axios';
 
@@ -42,6 +42,23 @@ const styles = {
     display: 'flex',
     flexWrap: 'wrap',
   },
+  list: {
+  	padding: 0,
+  },
+  card_container: {
+  	  display: 'flex',
+	  flexWrap: 'wrap',
+	  marginTop: '12px',
+	  justifyContent: 'center',
+  },
+  card: {
+  	flexGrow: 1,
+  flexShrink: 1,
+  margin: '0 10px 12px',
+  width: '100wh',
+  minWidth: '100px',
+  maxWidth: '500px',
+  }
 };
 
 const list_padding = {
@@ -569,24 +586,26 @@ export default class CardStream extends Component {
   }
 
   render() {
-    console.log(this.props.auth)
+    console.log("this is the auth" + this.props.auth)
     return (
       <div>
-        <AdminCard devices={this.state.devices} auth={this.props.auth} is_admin={this.state.is_admin}/>
-        <ul style={list_padding}>
-          {this.state.devices.map(device =>
-            <li key={device.id} style={cardContainerStyle}>
-              <LightSettingsCard device={device} auth={this.props.auth} accessDenied={this.handlePermissionDeniedSnackbar}/>
-            </li>
-          )}
-        </ul>
+       <AdminCard devices={this.state.devices} auth={this.props.auth} is_admin={this.state.is_admin}/>
+         <ul style={list_padding}>
+           {this.state.devices.map(device =>
+             <li key={device.id} style={cardContainerStyle}>
+               <LightSettingsCard device={device} auth={this.props.auth} accessDenied={this.handlePermissionDeniedSnackbar}/>
+             </li>
+           )}
+         </ul>
         <Snackbar
           open={this.state.snackbar_open}
-          message="Sorry, you don't have permission to perform this action"
+          message={<span id="message-id">Sorry, you don't have permission to perform this action</span>}
           autoHideDuration={4000}
-          onRequestClose={this.handleSnackbarRequestClose}
+          onClose={this.handleSnackbarRequestClose}
         />
+        
       </div>
     );    
   }
 }
+
