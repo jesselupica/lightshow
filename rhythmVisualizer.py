@@ -3,9 +3,6 @@ from visualizer import Visualizer
 from collections import deque, namedtuple
 import colorsys
 import random
-import numpy as np
-import scipy.fftpack 
-from scipy.signal import argrelextrema
 import math
 import time
 from stream import Stream
@@ -33,6 +30,12 @@ delay = 0.42857
 
 def val_for_chunk(rate, chunk_size, stream_rate):
     return rate * chunk_size / stream_rate
+
+def sign(x):
+    if x >= 0:
+        return 1
+    else:
+        return -1
 
 # Enum
 class LightModes:
@@ -64,7 +67,6 @@ class StreamAnalyzer:
         self.curr_intensity = rl_sum
 
         avg = sum(self.energy_history)/len(self.energy_history)
-        # var = np.var(np.array(self.energy_history))
         time_since_last_hit = time.time() - self.last_hit
         rest_interval_complete = time_since_last_hit > delay
         is_loud = self.curr_intensity > MIN_HIT_MULTIPLIER * avg
@@ -231,6 +233,8 @@ class RhythmVisualizer(Visualizer):
             self.mode = LightModes.Asleep
         else: 
             self.mode = LightModes.VisualizeMusic
+
+    
     
     def update_color(self):
         if self.mode == LightModes.Asleep:
@@ -238,7 +242,7 @@ class RhythmVisualizer(Visualizer):
             return
         hue_diff = self.desired_hue - self.hue
         if abs(hue_diff) > 0.5:
-            hue_diff = -1 * np.sign(hue_diff) * (1 - abs(hue_diff))
+            hue_diff = -1 * sign(hue_diff) * (1 - abs(hue_diff))
         self.hue += hue_diff * self.hue_selector.hue_multiplier
 
         sat_diff = self.desired_sat - self.saturation

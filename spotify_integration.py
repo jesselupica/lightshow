@@ -12,7 +12,7 @@ username = 'jesselupica'
 
 class SpotifyIntegration:
     def __init__(self):
-        self.token = util.prompt_for_user_token(username, scope, client_id, client_secret, redirect_uri)
+        self.token = util.prompt_for_user_token(username, scope, client_id, client_secret, redirect_uri, cache_path='/home/pi/Public/lightshow/.cache-jesselupica')
         self.is_chill = self.query_loop()
         self.detection_failure = self.is_chill is None
 

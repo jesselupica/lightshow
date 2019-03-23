@@ -5,25 +5,29 @@ import wave
 import os
 import traceback
 import pyaudio
-import numpy as np
 from collections import deque
 
 class Stream(object):
-    def __init__(self, rate=44100, chunk_size=1024):
+    def __init__(self, rate=44100, chunk_size=512):
         self.CHUNK_SIZE = chunk_size
         self.RATE = rate
         p = pyaudio.PyAudio()
         self.input_stream = p.open(format=pyaudio.paInt16, channels=1, rate=self.RATE,
                             input=True,
                             frames_per_buffer=self.CHUNK_SIZE)
-
+        #self.chunks_queried = 0
+        #self.chunks_delivered = 0
+        
     def get_chunk(self):
+        #self.chunks_queried += 1
         try:
             sound_data = array('h', self.input_stream.read(self.CHUNK_SIZE))
             if byteorder == 'big':
               	 sound_data.byteswap()
+            #self.chunks_delivered += 1
             return sound_data
         except IOError as e:
+            #print float(self.chunks_delivered)/self.chunks_queried
             return None
 	    
     def spec(self):

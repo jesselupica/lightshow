@@ -1,5 +1,4 @@
 from __future__ import division
-import numpy
 import math
 from array import array
 

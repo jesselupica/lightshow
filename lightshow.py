@@ -8,7 +8,6 @@ import threading
 import deviceClient
 import pygame
 import analyzer as analyzer_mod 
-from HSVVisualizer import HSVVisualizer
 from rhythmVisualizer import RhythmVisualizer
 from spotify_integration import SpotifyIntegration
 import stream
@@ -64,7 +63,7 @@ def visualize(light_visualizer):
 
 if __name__ == '__main__':
     print("Start recording...")
-
+    
     cli = deviceClient.Client(light_visualizer)
 
     cli_thread = threading.Thread(target=cli.run_client)
